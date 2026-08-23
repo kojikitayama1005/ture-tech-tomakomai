@@ -50,10 +50,6 @@
                     <i class="fa-solid fa-chart-line text-base"></i>
                     <span>集計・推移</span>
                 </button>
-                <button onclick="switchTab('settings')" id="tab-settings" class="py-3 px-1 flex items-center space-x-2">
-                    <i class="fa-solid fa-sliders text-base"></i>
-                    <span>データ管理</span>
-                </button>
             </div>
         </nav>
     </header>
@@ -142,28 +138,6 @@
                             <!-- Dynamic History Rows -->
                         </tbody>
                     </table>
-                </div>
-            </div>
-        </section>
-
-        <!-- TAB 3: データ管理画面 -->
-        <section id="view-settings" class="space-y-6 hidden">
-            <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200 space-y-4">
-                <h2 class="text-base font-bold text-slate-800 flex items-center space-x-2 border-b border-slate-100 pb-3">
-                    <i class="fa-solid fa-database text-blue-600"></i>
-                    <span>データ初期化・管理</span>
-                </h2>
-                <p class="text-xs text-slate-600">入力データのリセットやサンプルの投入を行えます。</p>
-
-                <div class="pt-2 flex flex-wrap gap-3">
-                    <button onclick="clearAllEvaluations()" class="bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 font-medium px-4 py-2 rounded-lg text-xs transition flex items-center space-x-1.5">
-                        <i class="fa-solid fa-trash-can"></i>
-                        <span>評価ログを全件削除</span>
-                    </button>
-                    <button onclick="resetStudentsToDefault()" class="bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-300 font-medium px-4 py-2 rounded-lg text-xs transition flex items-center space-x-1.5">
-                        <i class="fa-solid fa-arrows-rotate"></i>
-                        <span>学生マスターリスト（30名）を再設定</span>
-                    </button>
                 </div>
             </div>
         </section>
@@ -409,7 +383,7 @@
 
         // Tab Switching Logic
         function switchTab(tabName) {
-            ['list', 'analytics', 'settings'].forEach(t => {
+            ['list', 'analytics'].forEach(t => {
                 document.getElementById(`view-${t}`).classList.add('hidden');
                 document.getElementById(`tab-${t}`).classList.remove('tab-active');
             });
@@ -863,28 +837,6 @@
 
             const fileName = `TURE-TECH_評価データ_${new Date().toISOString().slice(0, 10)}.xlsx`;
             XLSX.writeFile(wb, fileName);
-        }
-
-        // Settings / Clear Functions
-        function clearAllEvaluations() {
-            if (confirm('全ての評価ログデータを削除してもよろしいですか？（この操作は取り消せません）')) {
-                evaluations = [];
-                saveData();
-                renderStudents();
-                renderHistoryTable();
-                renderIndividualTrendChart();
-                alert('全評価ログを削除しました。');
-            }
-        }
-
-        function resetStudentsToDefault() {
-            if (confirm('学生リスト（30名）を初期状態にリセットしますか？')) {
-                students = [...DEFAULT_STUDENTS];
-                saveData();
-                renderStudents();
-                populateStudentDropdowns();
-                alert('学生リストを初期化しました。');
-            }
         }
     </script>
 </body>
