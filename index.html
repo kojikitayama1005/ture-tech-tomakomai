@@ -3,1099 +3,889 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>TURE-TECH学生一覧</title>
+    <title>TURE-TECH 学生評価・カルテ管理</title>
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- React 18 & ReactDOM -->
-    <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
-    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
-    <!-- Babel Standalone -->
-    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <!-- Chart.js -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <!-- FontAwesome Icons -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- SheetJS for Excel export -->
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
     <style>
-        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; }
-        .no-scrollbar::-webkit-scrollbar { display: none; }
-        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+        body { font-family: 'Inter', sans-serif; }
+        .tab-active { border-bottom: 3px solid #2563eb; color: #2563eb; font-weight: 700; }
+        .score-badge { transition: all 0.2s ease; }
     </style>
 </head>
-<body class="bg-slate-100 text-slate-800 antialiased min-h-screen">
-    <div id="root"></div>
+<body class="bg-slate-50 text-slate-800 min-h-screen pb-16">
 
-    <script type="text/babel">
-        const { useState, useEffect, useRef, useMemo } = React;
+    <!-- Header -->
+    <header class="bg-slate-900 text-white shadow-md sticky top-0 z-30">
+        <div class="max-w-6xl mx-auto px-4 py-3 flex justify-between items-center">
+            <div class="flex items-center space-x-3">
+                <div class="bg-blue-600 text-white p-2 rounded-lg font-bold text-lg">TT</div>
+                <div>
+                    <h1 class="font-bold text-lg leading-tight">TURE-TECH 評価・カルテ</h1>
+                    <p class="text-xs text-slate-400">学生評価 & 時系列カルテ管理システム</p>
+                </div>
+            </div>
+            <div class="flex items-center space-x-2">
+                <span id="syncStatus" class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                    <span class="w-2 h-2 mr-1.5 bg-emerald-400 rounded-full animate-pulse"></span>
+                    データ保存中
+                </span>
+            </div>
+        </div>
+        
+        <!-- Navigation Tabs -->
+        <nav class="bg-white border-b border-slate-200 text-slate-600 text-sm font-medium">
+            <div class="max-w-6xl mx-auto px-4 flex space-x-8">
+                <button onclick="switchTab('list')" id="tab-list" class="py-3 px-1 tab-active flex items-center space-x-2">
+                    <i class="fa-solid fa-users text-base"></i>
+                    <span>学生一覧・入力</span>
+                </button>
+                <button onclick="switchTab('analytics')" id="tab-analytics" class="py-3 px-1 flex items-center space-x-2">
+                    <i class="fa-solid fa-chart-line text-base"></i>
+                    <span>集計・推移</span>
+                </button>
+                <button onclick="switchTab('settings')" id="tab-settings" class="py-3 px-1 flex items-center space-x-2">
+                    <i class="fa-solid fa-sliders text-base"></i>
+                    <span>データ管理</span>
+                </button>
+            </div>
+        </nav>
+    </header>
 
-        // 初期評価項目5つ
-        const EVAL_ITEMS = [
-            "論点整理・前提理解",
-            "課題特定",
-            "根拠・論拠の明確さ",
-            "巻き込み・合意形成",
-            "他者尊重"
+    <main class="max-w-6xl mx-auto px-4 py-6">
+
+        <!-- TAB 1: 学生一覧 & 入力一体化画面 -->
+        <section id="view-list" class="space-y-6">
+            <!-- Search & Team Filters -->
+            <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200 flex flex-col md:flex-row md:items-center justify-between gap-4">
+                <div class="relative flex-1">
+                    <i class="fa-solid fa-magnifying-glass absolute left-3 top-3 text-slate-400"></i>
+                    <input type="text" id="searchInput" oninput="renderStudents()" placeholder="学生名・フリガナで検索..." 
+                           class="w-full pl-9 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                </div>
+                <div class="flex items-center space-x-1 overflow-x-auto pb-1 md:pb-0" id="teamFilterButtons">
+                    <!-- Dynamic Team Filter Buttons -->
+                </div>
+            </div>
+
+            <!-- Student Summary Cards Grid -->
+            <div id="studentGrid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                <!-- Dynamic Student Cards -->
+            </div>
+        </section>
+
+        <!-- TAB 2: 集計・推移画面 -->
+        <section id="view-analytics" class="space-y-6 hidden">
+            <!-- Analytics Header / Excel Button -->
+            <div class="bg-white p-5 rounded-xl shadow-sm border border-slate-200 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                <div>
+                    <h2 class="text-lg font-bold text-slate-800">評価分析 & 時系列推移</h2>
+                    <p class="text-xs text-slate-500">入力ごとの5項目スコア推移を個別グラフで分析できます</p>
+                </div>
+                <button onclick="exportToExcel()" class="bg-emerald-600 hover:bg-emerald-700 text-white font-medium px-4 py-2 rounded-lg text-sm shadow-sm flex items-center space-x-2 transition">
+                    <i class="fa-solid fa-file-excel text-base"></i>
+                    <span>Excel出力 (.xlsx)</span>
+                </button>
+            </div>
+
+            <!-- Student Selector for Detailed Trend -->
+            <div class="bg-white p-5 rounded-xl shadow-sm border border-slate-200 space-y-4">
+                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 pb-4">
+                    <label class="text-sm font-bold text-slate-700 flex items-center space-x-2">
+                        <i class="fa-solid fa-user-gear text-blue-600"></i>
+                        <span>対象学生のスコア推移（5項目個別）:</span>
+                    </label>
+                    <select id="analyticsStudentSelect" onchange="renderIndividualTrendChart()" class="bg-slate-50 border border-slate-300 rounded-lg px-3 py-1.5 text-sm font-medium text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        <!-- Dynamic Student Options -->
+                    </select>
+                </div>
+
+                <!-- 5-Item Multi-Line Chart Container -->
+                <div class="relative w-full h-80 bg-slate-50/50 p-2 rounded-lg border border-slate-100">
+                    <canvas id="individualTrendChart"></canvas>
+                </div>
+            </div>
+
+            <!-- Evaluation History Log Table -->
+            <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+                <div class="p-4 border-b border-slate-100 flex justify-between items-center bg-slate-50">
+                    <h3 class="font-bold text-slate-800 text-sm flex items-center space-x-2">
+                        <i class="fa-solid fa-list-check text-slate-600"></i>
+                        <span>全入力履歴ログ</span>
+                    </h3>
+                    <span id="logCountBadge" class="text-xs font-semibold bg-blue-100 text-blue-800 px-2.5 py-0.5 rounded-full">0件</span>
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left text-xs">
+                        <thead class="bg-slate-100 text-slate-600 font-semibold border-b border-slate-200">
+                            <tr>
+                                <th class="p-3">日時</th>
+                                <th class="p-3">対象学生</th>
+                                <th class="p-3">チーム</th>
+                                <th class="p-3">記入者</th>
+                                <th class="p-3 text-center">論点</th>
+                                <th class="p-3 text-center">課題</th>
+                                <th class="p-3 text-center">根拠</th>
+                                <th class="p-3 text-center">巻き込み</th>
+                                <th class="p-3 text-center">他者尊重</th>
+                                <th class="p-3">所感メモ</th>
+                                <th class="p-3 text-center">操作</th>
+                            </tr>
+                        </thead>
+                        <tbody id="historyTableBody" class="divide-y divide-slate-100 text-slate-700">
+                            <!-- Dynamic History Rows -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+        <!-- TAB 3: データ管理画面 -->
+        <section id="view-settings" class="space-y-6 hidden">
+            <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200 space-y-4">
+                <h2 class="text-base font-bold text-slate-800 flex items-center space-x-2 border-b border-slate-100 pb-3">
+                    <i class="fa-solid fa-database text-blue-600"></i>
+                    <span>データ初期化・管理</span>
+                </h2>
+                <p class="text-xs text-slate-600">入力データのリセットやサンプルの投入を行えます。</p>
+
+                <div class="pt-2 flex flex-wrap gap-3">
+                    <button onclick="clearAllEvaluations()" class="bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 font-medium px-4 py-2 rounded-lg text-xs transition flex items-center space-x-1.5">
+                        <i class="fa-solid fa-trash-can"></i>
+                        <span>評価ログを全件削除</span>
+                    </button>
+                    <button onclick="resetStudentsToDefault()" class="bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-300 font-medium px-4 py-2 rounded-lg text-xs transition flex items-center space-x-1.5">
+                        <i class="fa-solid fa-arrows-rotate"></i>
+                        <span>学生マスターリスト（30名）を再設定</span>
+                    </button>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- MODAL 1: 評価入力モーダル -->
+    <div id="evalModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-white rounded-2xl shadow-xl max-w-lg w-full max-h-[90vh] overflow-y-auto border border-slate-200">
+            <!-- Modal Header -->
+            <div class="p-4 border-b border-slate-100 bg-slate-50 flex justify-between items-center sticky top-0 z-10">
+                <div>
+                    <span id="modalTeamBadge" class="inline-block text-[10px] font-bold px-2 py-0.5 rounded bg-blue-100 text-blue-800 mb-1">Aチーム</span>
+                    <h3 id="modalStudentName" class="text-lg font-bold text-slate-800">山田 太郎</h3>
+                </div>
+                <button onclick="closeEvalModal()" class="text-slate-400 hover:text-slate-600 p-1 rounded-lg">
+                    <i class="fa-solid fa-xmark text-lg"></i>
+                </button>
+            </div>
+
+            <!-- Modal Form Body -->
+            <div class="p-5 space-y-5">
+                <!-- 記入者情報 (必須) -->
+                <div class="bg-blue-50/60 p-3.5 rounded-xl border border-blue-100 space-y-3">
+                    <label class="block text-xs font-bold text-slate-700">
+                        記入者情報 <span class="text-rose-500">*必須</span>
+                    </label>
+                    <div class="grid grid-cols-2 gap-2">
+                        <button type="button" id="roleMentorBtn" onclick="setEvaluatorRole('メンター')" 
+                                class="py-2 text-xs font-bold rounded-lg border text-center transition bg-blue-600 text-white border-blue-600 shadow-sm">
+                            👨‍🏫 メンター
+                        </button>
+                        <button type="button" id="roleSupporterBtn" onclick="setEvaluatorRole('サポーター')" 
+                                class="py-2 text-xs font-bold rounded-lg border text-center transition bg-white text-slate-600 border-slate-300">
+                            🤝 サポーター
+                        </button>
+                    </div>
+                    <input type="text" id="evaluatorNameInput" oninput="validateModalForm()" placeholder="記入者の氏名を入力してください（例: 鈴木）" 
+                           class="w-full text-xs p-2.5 bg-white border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                </div>
+
+                <!-- 5 Criteria Ratings -->
+                <div class="space-y-4">
+                    <h4 class="text-xs font-bold text-slate-700 border-b border-slate-100 pb-1">評価スコア (1〜5点)</h4>
+
+                    <!-- 1. 論点整理・前提理解 -->
+                    <div class="space-y-1">
+                        <div class="flex justify-between items-center text-xs">
+                            <span class="font-semibold text-slate-700">1. 論点整理・前提理解</span>
+                            <span id="val_c1" class="font-bold text-blue-600">3点</span>
+                        </div>
+                        <input type="range" id="score_c1" min="1" max="5" value="3" oninput="updateScoreDisplay('c1')" class="w-full accent-blue-600">
+                    </div>
+
+                    <!-- 2. 課題特定 -->
+                    <div class="space-y-1">
+                        <div class="flex justify-between items-center text-xs">
+                            <span class="font-semibold text-slate-700">2. 課題特定</span>
+                            <span id="val_c2" class="font-bold text-blue-600">3点</span>
+                        </div>
+                        <input type="range" id="score_c2" min="1" max="5" value="3" oninput="updateScoreDisplay('c2')" class="w-full accent-blue-600">
+                    </div>
+
+                    <!-- 3. 根拠・論拠の明確さ -->
+                    <div class="space-y-1">
+                        <div class="flex justify-between items-center text-xs">
+                            <span class="font-semibold text-slate-700">3. 根拠・論拠の明確さ</span>
+                            <span id="val_c3" class="font-bold text-blue-600">3点</span>
+                        </div>
+                        <input type="range" id="score_c3" min="1" max="5" value="3" oninput="updateScoreDisplay('c3')" class="w-full accent-blue-600">
+                    </div>
+
+                    <!-- 4. 巻き込み・合意形成 -->
+                    <div class="space-y-1">
+                        <div class="flex justify-between items-center text-xs">
+                            <span class="font-semibold text-slate-700">4. 巻き込み・合意形成</span>
+                            <span id="val_c4" class="font-bold text-blue-600">3点</span>
+                        </div>
+                        <input type="range" id="score_c4" min="1" max="5" value="3" oninput="updateScoreDisplay('c4')" class="w-full accent-blue-600">
+                    </div>
+
+                    <!-- 5. 他者尊重 -->
+                    <div class="space-y-1">
+                        <div class="flex justify-between items-center text-xs">
+                            <span class="font-semibold text-slate-700">5. 他者尊重</span>
+                            <span id="val_c5" class="font-bold text-blue-600">3点</span>
+                        </div>
+                        <input type="range" id="score_c5" min="1" max="5" value="3" oninput="updateScoreDisplay('c5')" class="w-full accent-blue-600">
+                    </div>
+                </div>
+
+                <!-- 定性メモ / 所感 (必須) -->
+                <div class="space-y-1.5">
+                    <label class="block text-xs font-bold text-slate-700">
+                        定性メモ・所感 <span class="text-rose-500">*必須</span>
+                    </label>
+                    <textarea id="commentInput" rows="3" oninput="validateModalForm()" 
+                              placeholder="各学生の所感を入力してください" 
+                              class="w-full text-xs p-3 bg-slate-50 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"></textarea>
+                </div>
+            </div>
+
+            <!-- Modal Footer -->
+            <div class="p-4 border-t border-slate-100 bg-slate-50 flex justify-end space-x-3">
+                <button onclick="closeEvalModal()" class="px-4 py-2 text-xs font-medium text-slate-600 hover:text-slate-800 bg-slate-200 rounded-lg">キャンセル</button>
+                <button id="saveEvalBtn" onclick="saveEvaluation()" disabled 
+                        class="px-5 py-2 text-xs font-bold text-white bg-blue-600 hover:bg-blue-700 disabled:opacity-40 disabled:cursor-not-allowed rounded-lg shadow-sm transition">
+                    保存する
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL 2: 学生詳細カルテモーダル -->
+    <div id="karteModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-white rounded-2xl shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto border border-slate-200">
+            <div class="p-4 border-b border-slate-100 bg-slate-50 flex justify-between items-center sticky top-0 z-10">
+                <div>
+                    <span id="karteTeamBadge" class="inline-block text-[10px] font-bold px-2 py-0.5 rounded bg-blue-100 text-blue-800 mb-1">Aチーム</span>
+                    <h3 id="karteStudentName" class="text-lg font-bold text-slate-800">山田 太郎 カルテ</h3>
+                </div>
+                <button onclick="closeKarteModal()" class="text-slate-400 hover:text-slate-600 p-1 rounded-lg">
+                    <i class="fa-solid fa-xmark text-lg"></i>
+                </button>
+            </div>
+
+            <div class="p-5 space-y-6">
+                <!-- Individual Trend Chart -->
+                <div class="bg-slate-50 p-4 rounded-xl border border-slate-200 space-y-2">
+                    <h4 class="text-xs font-bold text-slate-700 flex items-center space-x-2">
+                        <i class="fa-solid fa-chart-line text-blue-600"></i>
+                        <span>5項目スコア推移（全データタイムスタンプ）</span>
+                    </h4>
+                    <div class="relative w-full h-64 bg-white p-2 rounded-lg border border-slate-100">
+                        <canvas id="karteTrendChart"></canvas>
+                    </div>
+                </div>
+
+                <!-- History Logs for Student -->
+                <div class="space-y-3">
+                    <h4 class="text-xs font-bold text-slate-700 border-b border-slate-100 pb-2">過去の評価・所感履歴</h4>
+                    <div id="karteHistoryList" class="space-y-3">
+                        <!-- Dynamic History Cards -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Default Students Data (30 Students)
+        const DEFAULT_STUDENTS = [
+            // Aチーム (6名)
+            { id: "s1", name: "洪 克樹", group: "Aチーム", kana: "ホン カツキ" },
+            { id: "s2", name: "平川 凛乃丞", group: "Aチーム", kana: "ヒラカワ リノスケ" },
+            { id: "s3", name: "吉田 光里", group: "Aチーム", kana: "ヨシダ ヒカリ" },
+            { id: "s4", name: "前田 悠翔", group: "Aチーム", kana: "マエダ ハルト" },
+            { id: "s5", name: "田上 睦己", group: "Aチーム", kana: "タガミ ムツミ" },
+            { id: "s6", name: "関口 実桜", group: "Aチーム", kana: "セキグチ ミオ" },
+            // Bチーム (6名)
+            { id: "s7", name: "田邉 莉那", group: "Bチーム", kana: "タナベ リナ" },
+            { id: "s8", name: "藤田 彩翔", group: "Bチーム", kana: "フジタ アヤト" },
+            { id: "s9", name: "大島 史菜", group: "Bチーム", kana: "オオシマ フミナ" },
+            { id: "s10", name: "堀田 壮真", group: "Bチーム", kana: "ホッタ ソウマ" },
+            { id: "s11", name: "坂本 愛緒", group: "Bチーム", kana: "サカモト アオ" },
+            { id: "s12", name: "神田 結生", group: "Bチーム", kana: "カンダ ユウ" },
+            // Cチーム (5名 - 唯木 瞬 除外済み)
+            { id: "s13", name: "岩﨑 美怜", group: "Cチーム", kana: "イワサキ ミレイ" },
+            { id: "s14", name: "飯塚 成大", group: "Cチーム", kana: "イイヅカ セイダイ" },
+            { id: "s15", name: "西松 和郎", group: "Cチーム", kana: "ニシマツ カオ" },
+            { id: "s17", name: "加藤 青", group: "Cチーム", kana: "カトウ アオ" },
+            { id: "s18", name: "河崎 みの里", group: "Cチーム", kana: "カワサキ ミノリ" },
+            // Dチーム (6名)
+            { id: "s19", name: "川名 桜慈", group: "Dチーム", kana: "カワナ オウジ" },
+            { id: "s20", name: "堀部 紗礼", group: "Dチーム", kana: "ホリベ サラ" },
+            { id: "s21", name: "畑中 真彦", group: "Dチーム", kana: "ハタナカ マサヒコ" },
+            { id: "s22", name: "大久保 佳奈", group: "Dチーム", kana: "オオクボ カナ" },
+            { id: "s23", name: "向井 和輝", group: "Dチーム", kana: "ムカイ カズキ" },
+            { id: "s24", name: "尾形 瑞希", group: "Dチーム", kana: "オガタ ミズキ" },
+            // Eチーム (7名)
+            { id: "s25", name: "保坂 海", group: "Eチーム", kana: "ホサカ カイ" },
+            { id: "s26", name: "中嶋 大貴", group: "Eチーム", kana: "ナカジマ ダイキ" },
+            { id: "s27", name: "山口 真季", group: "Eチーム", kana: "ヤマグチ マキ" },
+            { id: "s28", name: "仲田 万智子", group: "Eチーム", kana: "ナカダ マチコ" },
+            { id: "s29", name: "大原 明", group: "Eチーム", kana: "オオハラ アキラ" },
+            { id: "s30", name: "保科 りさ子", group: "Eチーム", kana: "ホシナ リサコ" },
+            { id: "s31", name: "米田 遥希", group: "Eチーム", kana: "ヨネダ ハルキ" }
         ];
 
-        // グラフ描画用の5項目カラー定義
-        const ITEM_COLORS = [
-            '#0284c7', // スカイブルー (論点整理)
-            '#16a34a', // グリーン (課題特定)
-            '#d97706', // アンバー (根拠・論拠)
-            '#9333ea', // パープル (巻き込み)
-            '#e11d48'  // ローズ (他者尊重)
-        ];
+        // Storage Keys
+        const STORAGE_STUDENTS = 'turetech_students_v11';
+        const STORAGE_EVALS = 'turetech_evals_v11';
+        const STORAGE_EVALUATOR_ROLE = 'turetech_evaluator_role';
+        const STORAGE_EVALUATOR_NAME = 'turetech_evaluator_name';
 
-        // 初期サンプルの学生データ
-        const INITIAL_STUDENTS = [
-            { id: "s1", name: "佐藤 拓海", group: "1班", kana: "サトウ タクミ" },
-            { id: "s2", name: "鈴木 葵", group: "1班", kana: "スズキ アオイ" },
-            { id: "s3", name: "高橋 陸", group: "2班", kana: "タカハシ リク" },
-            { id: "s4", name: "田中 結衣", group: "2班", kana: "タナカ ユイ" },
-            { id: "s5", name: "渡辺 翔太", group: "3班", kana: "ワタナベ ショウタ" },
-            { id: "s6", name: "伊藤 凛", group: "3班", kana: "イトウ リン" }
-        ];
+        // State Variables
+        let students = [];
+        let evaluations = [];
+        let selectedTeamFilter = 'ALL';
+        let currentStudentForModal = null;
+        let currentEvaluatorRole = 'メンター';
 
-        const STORAGE_KEYS = {
-            STUDENTS: 'turetech_students_v3',
-            EVALS: 'turetech_evaluations_v3',
-            ROLE: 'turetech_user_role_v3',
-            EVALUATOR_NAME: 'turetech_evaluator_name',
-            EVALUATOR_TYPE: 'turetech_evaluator_type'
-        };
+        // Chart Instances
+        let analyticsChartInstance = null;
+        let karteChartInstance = null;
 
-        const loadLocal = (key, defaultVal) => {
-            try {
-                const item = localStorage.getItem(key);
-                return item ? JSON.parse(item) : defaultVal;
-            } catch (e) {
-                return defaultVal;
-            }
-        };
-
-        const saveLocal = (key, val) => {
-            try {
-                localStorage.setItem(key, JSON.stringify(val));
-            } catch (e) {
-                console.error("Save local error:", e);
-            }
-        };
-
-        function AuthModal({ isOpen, onClose, onSuccess }) {
-            const [code, setCode] = useState('');
-            const [error, setError] = useState(false);
-
-            if (!isOpen) return null;
-
-            const handleSubmit = (e) => {
-                e.preventDefault();
-                if (code === '1234') {
-                    onSuccess();
-                    setCode('');
-                    setError(false);
-                } else {
-                    setError(true);
-                }
-            };
-
-            return (
-                <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-                    <div className="bg-white rounded-2xl p-6 w-full max-w-sm shadow-xl">
-                        <div className="text-center mb-4">
-                            <div className="w-12 h-12 bg-indigo-100 text-indigo-600 rounded-full flex items-center justify-center mx-auto mb-2 text-xl">
-                                <i className="fas fa-lock"></i>
-                            </div>
-                            <h3 className="font-bold text-slate-800 text-lg">運営権限の確認</h3>
-                            <p className="text-xs text-slate-500 mt-1">パスコードを入力してください</p>
-                        </div>
-                        <form onSubmit={handleSubmit} className="space-y-4">
-                            <input
-                                type="password"
-                                value={code}
-                                onChange={(e) => { setCode(e.target.value); setError(false); }}
-                                placeholder="パスコード"
-                                autoFocus
-                                className={`w-full px-4 py-3 rounded-xl border text-center text-xl tracking-widest outline-none transition ${
-                                    error ? 'border-rose-500 bg-rose-50 ring-2 ring-rose-200' : 'border-slate-300 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200'
-                                }`}
-                            />
-                            {error && <p className="text-xs text-rose-500 text-center font-medium">パスコードが違います</p>}
-                            <div className="flex gap-2 pt-2">
-                                <button
-                                    type="button"
-                                    onClick={onClose}
-                                    className="flex-1 py-2.5 rounded-xl border border-slate-300 text-slate-600 text-sm font-medium hover:bg-slate-50"
-                                >
-                                    キャンセル
-                                </button>
-                                <button
-                                    type="submit"
-                                    className="flex-1 py-2.5 rounded-xl bg-indigo-600 text-white text-sm font-medium hover:bg-indigo-700 shadow-md shadow-indigo-200"
-                                >
-                                    認証
-                                </button>
-                            </div>
-                        </form>
-                    </div>
-                </div>
-            );
-        }
-
-        function EvalModal({ student, evalItems, onClose, onSave }) {
-            const [evaluatorRole, setEvaluatorRole] = useState(() => loadLocal(STORAGE_KEYS.EVALUATOR_TYPE, 'メンター'));
-            const [evaluatorName, setEvaluatorName] = useState(() => loadLocal(STORAGE_KEYS.EVALUATOR_NAME, ''));
-            const [scores, setScores] = useState(() => {
-                const init = {};
-                evalItems.forEach(item => init[item] = 3);
-                return init;
-            });
-            const [comment, setComment] = useState('');
-
-            if (!student) return null;
-
-            const isNameValid = evaluatorName.trim().length > 0;
-            const isCommentValid = comment.trim().length > 0;
-            const isValid = isNameValid && isCommentValid;
-
-            const handleScoreChange = (item, val) => {
-                setScores(prev => ({ ...prev, [item]: val }));
-            };
-
-            const handleSubmit = (e) => {
-                e.preventDefault();
-                if (!isValid) return;
-
-                // 選択状態をLocalStorageに保持
-                saveLocal(STORAGE_KEYS.EVALUATOR_TYPE, evaluatorRole);
-                saveLocal(STORAGE_KEYS.EVALUATOR_NAME, evaluatorName.trim());
-
-                const now = new Date();
-                const timestampStr = `${now.getMonth() + 1}/${now.getDate()} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
-
-                onSave({
-                    id: 'ev_' + Date.now() + '_' + Math.random().toString(36).substr(2, 4),
-                    studentId: student.id,
-                    evaluatorRole,
-                    evaluatorName: evaluatorName.trim(),
-                    scores,
-                    comment: comment.trim(),
-                    timestamp: timestampStr,
-                    rawTimestamp: now.getTime()
-                });
-            };
-
-            return (
-                <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-3 sm:p-4 overflow-y-auto">
-                    <div className="bg-white rounded-2xl w-full max-w-lg shadow-2xl my-auto overflow-hidden flex flex-col max-h-[90vh]">
-                        {/* ヘッダー */}
-                        <div className="bg-slate-900 text-white p-4 flex justify-between items-center shrink-0">
-                            <div>
-                                <span className="bg-indigo-500/30 text-indigo-300 text-xs font-semibold px-2.5 py-0.5 rounded-full border border-indigo-400/30 mr-2">
-                                    {student.group}
-                                </span>
-                                <h3 className="text-lg font-bold inline-block">{student.name} の入力</h3>
-                            </div>
-                            <button onClick={onClose} className="text-slate-400 hover:text-white p-1">
-                                <i className="fas fa-times text-xl"></i>
-                            </button>
-                        </div>
-
-                        {/* フォーム入力エリア */}
-                        <form onSubmit={handleSubmit} className="p-4 sm:p-6 overflow-y-auto space-y-5">
-                            {/* 記入者設定 */}
-                            <div className="bg-slate-50 p-3.5 rounded-xl border border-slate-200 space-y-3">
-                                <div className="flex items-center justify-between text-xs font-bold text-slate-700">
-                                    <span>記入者情報 <span className="text-rose-500">*必須</span></span>
-                                </div>
-                                <div className="grid grid-cols-2 gap-2">
-                                    <button
-                                        type="button"
-                                        onClick={() => setEvaluatorRole('メンター')}
-                                        className={`py-2 rounded-lg text-xs font-bold transition flex items-center justify-center gap-1.5 ${
-                                            evaluatorRole === 'メンター' 
-                                                ? 'bg-indigo-600 text-white shadow-sm' 
-                                                : 'bg-white text-slate-600 border border-slate-200'
-                                        }`}
-                                    >
-                                        <i className="fas fa-user-tie"></i> 👨‍🏫 メンター
-                                    </button>
-                                    <button
-                                        type="button"
-                                        onClick={() => setEvaluatorRole('サポーター')}
-                                        className={`py-2 rounded-lg text-xs font-bold transition flex items-center justify-center gap-1.5 ${
-                                            evaluatorRole === 'サポーター' 
-                                                ? 'bg-teal-600 text-white shadow-sm' 
-                                                : 'bg-white text-slate-600 border border-slate-200'
-                                        }`}
-                                    >
-                                        <i className="fas fa-handshake"></i> 🤝 サポーター
-                                    </button>
-                                </div>
-                                <input
-                                    type="text"
-                                    value={evaluatorName}
-                                    onChange={(e) => setEvaluatorName(e.target.value)}
-                                    placeholder="記入者の名前を入力してください（必須）"
-                                    className="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg text-sm outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
-                                />
-                            </div>
-
-                            {/* スコア入力 */}
-                            <div className="space-y-4">
-                                <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider">評価項目 (1〜5点)</h4>
-                                {evalItems.map((item, idx) => (
-                                    <div key={item} className="space-y-1.5">
-                                        <div className="flex justify-between text-sm font-medium">
-                                            <span className="text-slate-700">{item}</span>
-                                            <span className="font-bold text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded text-xs">
-                                                {scores[item]} 点
-                                            </span>
-                                        </div>
-                                        <div className="flex gap-1.5">
-                                            {[1, 2, 3, 4, 5].map(val => (
-                                                <button
-                                                    key={val}
-                                                    type="button"
-                                                    onClick={() => handleScoreChange(item, val)}
-                                                    className={`flex-1 py-2 rounded-lg font-bold text-xs transition ${
-                                                        scores[item] === val 
-                                                            ? 'bg-indigo-600 text-white shadow-md shadow-indigo-200 scale-105' 
-                                                            : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-                                                    }`}
-                                                >
-                                                    {val}
-                                                </button>
-                                            ))}
-                                        </div>
-                                    </div>
-                                ))}
-                            </div>
-
-                            {/* 所感メモ（必須） */}
-                            <div className="space-y-1.5">
-                                <div className="flex justify-between items-center text-xs font-bold text-slate-700">
-                                    <label>所感・定性メモ <span className="text-rose-500">*必須</span></label>
-                                </div>
-                                <textarea
-                                    value={comment}
-                                    onChange={(e) => setComment(e.target.value)}
-                                    rows="3"
-                                    placeholder="各学生の所感を入力してください"
-                                    className="w-full p-3 border border-slate-300 rounded-xl text-sm outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 resize-none"
-                                ></textarea>
-                            </div>
-
-                            {/* 保存ボタン */}
-                            <button
-                                type="submit"
-                                disabled={!isValid}
-                                className={`w-full py-3 rounded-xl font-bold text-sm shadow-lg transition flex items-center justify-center gap-2 ${
-                                    isValid 
-                                        ? 'bg-indigo-600 hover:bg-indigo-700 text-white shadow-indigo-200' 
-                                        : 'bg-slate-200 text-slate-400 cursor-not-allowed shadow-none'
-                                }`}
-                            >
-                                <i className="fas fa-check"></i> 保存する
-                            </button>
-                        </form>
-                    </div>
-                </div>
-            );
-        }
-
-        function DetailModal({ student, evaluations, evalItems, userRole, onClose, onOpenEval }) {
-            const chartRef = useRef(null);
-            const chartInstance = useRef(null);
-
-            // 古い順にソートして個別の点数推移を作成
-            const sortedEvals = useMemo(() => {
-                return [...evaluations].sort((a, b) => (a.rawTimestamp || 0) - (b.rawTimestamp || 0));
-            }, [evaluations]);
-
-            useEffect(() => {
-                if (chartRef.current && sortedEvals.length > 0) {
-                    if (chartInstance.current) {
-                        chartInstance.current.destroy();
-                    }
-
-                    const labels = sortedEvals.map(e => e.timestamp || '記録');
-                    
-                    // 5項目それぞれの折れ線データセットを生成
-                    const datasets = evalItems.map((item, idx) => {
-                        const color = ITEM_COLORS[idx % ITEM_COLORS.length];
-                        return {
-                            label: item,
-                            data: sortedEvals.map(e => (e.scores && e.scores[item] !== undefined) ? e.scores[item] : null),
-                            borderColor: color,
-                            backgroundColor: color,
-                            borderWidth: 2,
-                            pointRadius: 4,
-                            pointHoverRadius: 6,
-                            tension: 0.2,
-                            spanGaps: true
-                        };
-                    });
-
-                    const ctx = chartRef.current.getContext('2d');
-                    chartInstance.current = new Chart(ctx, {
-                        type: 'line',
-                        data: {
-                            labels: labels,
-                            datasets: datasets
-                        },
-                        options: {
-                            responsive: true,
-                            maintainAspectRatio: false,
-                            scales: {
-                                y: {
-                                    min: 1,
-                                    max: 5,
-                                    ticks: { stepSize: 1, font: { size: 10 } },
-                                    grid: { color: 'rgba(226, 232, 240, 0.8)' }
-                                },
-                                x: {
-                                    ticks: { font: { size: 9 }, maxRotation: 45 }
-                                }
-                            },
-                            plugins: {
-                                legend: {
-                                    display: true,
-                                    position: 'bottom',
-                                    labels: {
-                                        boxWidth: 8,
-                                        usePointStyle: true,
-                                        font: { size: 9 },
-                                        padding: 6
-                                    }
-                                },
-                                tooltip: {
-                                    callbacks: {
-                                        label: (context) => ` ${context.dataset.label}: ${context.parsed.y}点`
-                                    }
-                                }
-                            }
-                        }
-                    });
-                }
-                return () => {
-                    if (chartInstance.current) {
-                        chartInstance.current.destroy();
-                    }
-                };
-            }, [sortedEvals, evalItems]);
-
-            if (!student) return null;
-
-            return (
-                <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-3 sm:p-4 overflow-y-auto">
-                    <div className="bg-white rounded-2xl w-full max-w-2xl shadow-2xl my-auto overflow-hidden flex flex-col max-h-[92vh]">
-                        {/* モーダルヘッダー */}
-                        <div className="bg-slate-900 text-white p-4 flex justify-between items-center shrink-0">
-                            <div>
-                                <span className="bg-indigo-500/30 text-indigo-300 text-xs font-semibold px-2.5 py-0.5 rounded-full border border-indigo-400/30 mr-2">
-                                    {student.group}
-                                </span>
-                                <h3 className="text-xl font-bold inline-block">{student.name} カルテ</h3>
-                            </div>
-                            <button onClick={onClose} className="text-slate-400 hover:text-white p-1">
-                                <i className="fas fa-times text-xl"></i>
-                            </button>
-                        </div>
-
-                        {/* ボディ */}
-                        <div className="p-4 sm:p-6 overflow-y-auto space-y-6">
-                            {/* 折れ線グラフエリア（5項目推移） */}
-                            <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 space-y-2">
-                                <div className="flex justify-between items-center">
-                                    <h4 className="font-bold text-slate-800 text-sm flex items-center gap-2">
-                                        <i className="fas fa-chart-line text-indigo-600"></i> 評価項目別 スコア推移 (5項目)
-                                    </h4>
-                                    <span className="text-xs text-slate-500 font-medium">全 {sortedEvals.length} 回の記録</span>
-                                </div>
-                                {sortedEvals.length > 0 ? (
-                                    <div className="h-60 w-full relative pt-2">
-                                        <canvas ref={chartRef}></canvas>
-                                    </div>
-                                ) : (
-                                    <p className="text-center text-xs text-slate-400 py-10">まだ入力記録がありません</p>
-                                )}
-                            </div>
-
-                            {/* 入力ボタン（クイックアクセスコール） */}
-                            <div className="flex justify-end">
-                                <button
-                                    onClick={() => { onClose(); onOpenEval(student); }}
-                                    className="bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold px-4 py-2.5 rounded-xl shadow-md flex items-center gap-2"
-                                >
-                                    <i className="fas fa-pencil-alt"></i> この学生の所感を入力する
-                                </button>
-                            </div>
-
-                            {/* 過去ログ一覧 */}
-                            <div className="space-y-3">
-                                <h4 className="font-bold text-slate-800 text-sm flex items-center gap-2">
-                                    <i className="fas fa-history text-slate-500"></i> 入力・所感履歴
-                                </h4>
-                                {sortedEvals.length === 0 ? (
-                                    <p className="text-center text-xs text-slate-400 py-4">履歴はありません</p>
-                                ) : (
-                                    <div className="space-y-3">
-                                        {[...sortedEvals].reverse().map((ev) => (
-                                            <div key={ev.id} className="bg-white p-3.5 rounded-xl border border-slate-200 shadow-sm space-y-2">
-                                                <div className="flex justify-between items-center text-xs border-b border-slate-100 pb-2">
-                                                    <div className="flex items-center gap-1.5 font-bold text-slate-700">
-                                                        <span className="bg-slate-100 px-2 py-0.5 rounded text-slate-600">
-                                                            {ev.evaluatorRole || 'メンター'}
-                                                        </span>
-                                                        <span>{ev.evaluatorName || '匿名'}</span>
-                                                    </div>
-                                                    <span className="text-slate-400">{ev.timestamp}</span>
-                                                </div>
-                                                {/* 各項目の点数バッジ */}
-                                                <div className="flex flex-wrap gap-1.5 pt-1">
-                                                    {evalItems.map((item, idx) => (
-                                                        <span 
-                                                            key={item} 
-                                                            className="text-[10px] font-semibold px-2 py-0.5 rounded-full border"
-                                                            style={{
-                                                                color: ITEM_COLORS[idx % ITEM_COLORS.length],
-                                                                borderColor: `${ITEM_COLORS[idx % ITEM_COLORS.length]}40`,
-                                                                backgroundColor: `${ITEM_COLORS[idx % ITEM_COLORS.length]}10`
-                                                            }}
-                                                        >
-                                                            {item}: {ev.scores?.[item] ?? '-'}
-                                                        </span>
-                                                    ))}
-                                                </div>
-                                                {/* 定性コメント */}
-                                                {ev.comment && (
-                                                    <p className="text-xs text-slate-700 bg-slate-50 p-2.5 rounded-lg border border-slate-100 whitespace-pre-wrap leading-relaxed mt-2">
-                                                        {ev.comment}
-                                                    </p>
-                                                )}
-                                            </div>
-                                        ))}
-                                    </div>
-                                )}
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            );
-        }
-
-        function SummaryTab({ students, evaluations, evalItems, userRole }) {
-            const [selectedGroup, setSelectedGroup] = useState('ALL');
-            const [selectedStudentId, setSelectedStudentId] = useState('ALL');
-
-            const chartRef = useRef(null);
-            const chartInstance = useRef(null);
-
-            const groups = useMemo(() => ['ALL', ...new Set(students.map(s => s.group))], [students]);
-            const groupStudents = useMemo(() => {
-                return students.filter(s => selectedGroup === 'ALL' || s.group === selectedGroup);
-            }, [students, selectedGroup]);
-
-            // 学生ごとの統計
-            const studentStats = useMemo(() => {
-                return groupStudents.map(student => {
-                    const evs = evaluations.filter(e => e.studentId === student.id);
-                    const sorted = [...evs].sort((a, b) => (a.rawTimestamp || 0) - (b.rawTimestamp || 0));
-
-                    let latestScore = 0;
-                    if (sorted.length > 0) {
-                        const last = sorted[sorted.length - 1];
-                        if (last.scores) {
-                            const vals = Object.values(last.scores);
-                            if (vals.length > 0) {
-                                latestScore = (vals.reduce((a, b) => a + b, 0) / vals.length);
-                            }
-                        }
-                    }
-
-                    return {
-                        ...student,
-                        evalCount: evs.length,
-                        latestScore: parseFloat(latestScore.toFixed(1)),
-                        sortedEvals: sorted
-                    };
-                });
-            }, [groupStudents, evaluations]);
-
-            // 折れ線グラフ（特定生徒は5本、全体は平均1本）
-            useEffect(() => {
-                if (chartRef.current && studentStats.length > 0) {
-                    if (chartInstance.current) {
-                        chartInstance.current.destroy();
-                    }
-
-                    let labels = [];
-                    let datasets = [];
-
-                    if (selectedStudentId !== 'ALL') {
-                        // 特定生徒選択：5項目の推移を表示
-                        const st = studentStats.find(s => s.id === selectedStudentId);
-                        const targetEvals = st ? st.sortedEvals : [];
-
-                        if (targetEvals.length > 0) {
-                            labels = targetEvals.map(e => e.timestamp || '記録');
-                            datasets = evalItems.map((item, idx) => {
-                                const color = ITEM_COLORS[idx % ITEM_COLORS.length];
-                                return {
-                                    label: item,
-                                    data: targetEvals.map(e => (e.scores && e.scores[item] !== undefined) ? e.scores[item] : null),
-                                    borderColor: color,
-                                    backgroundColor: color,
-                                    borderWidth: 2,
-                                    pointRadius: 4,
-                                    tension: 0.2,
-                                    spanGaps: true
-                                };
-                            });
-                        }
-                    } else {
-                        // 全体／チーム選択時：各入力の平均スコア推移
-                        const allEvs = evaluations.filter(e => groupStudents.some(gs => gs.id === e.studentId));
-                        const targetEvals = [...allEvs].sort((a, b) => (a.rawTimestamp || 0) - (b.rawTimestamp || 0));
-
-                        if (targetEvals.length > 0) {
-                            labels = targetEvals.map(e => {
-                                const st = students.find(s => s.id === e.studentId);
-                                return `${st ? st.name.split(' ')[0] : ''} (${e.timestamp})`;
-                            });
-
-                            const scores = targetEvals.map(e => {
-                                if (!e.scores || Object.keys(e.scores).length === 0) return null;
-                                const vals = Object.values(e.scores);
-                                return (vals.reduce((a, b) => a + b, 0) / vals.length).toFixed(1);
-                            });
-
-                            datasets = [{
-                                label: '全体平均スコア推移',
-                                data: scores,
-                                borderColor: '#0284c7',
-                                backgroundColor: 'rgba(2, 132, 199, 0.1)',
-                                borderWidth: 2,
-                                pointBackgroundColor: '#0284c7',
-                                pointRadius: 4,
-                                tension: 0.3,
-                                fill: true
-                            }];
-                        }
-                    }
-
-                    if (labels.length > 0) {
-                        const ctx = chartRef.current.getContext('2d');
-                        chartInstance.current = new Chart(ctx, {
-                            type: 'line',
-                            data: { labels, datasets },
-                            options: {
-                                responsive: true,
-                                maintainAspectRatio: false,
-                                scales: {
-                                    y: {
-                                        min: 1,
-                                        max: 5,
-                                        ticks: { stepSize: 1, font: { size: 10 } }
-                                    },
-                                    x: {
-                                        ticks: { font: { size: 9 }, maxRotation: 45 }
-                                    }
-                                },
-                                plugins: {
-                                    legend: {
-                                        display: selectedStudentId !== 'ALL',
-                                        position: 'bottom',
-                                        labels: {
-                                            boxWidth: 8,
-                                            usePointStyle: true,
-                                            font: { size: 9 },
-                                            padding: 6
-                                        }
-                                    }
-                                }
-                            }
-                        });
-                    }
-                }
-                return () => {
-                    if (chartInstance.current) {
-                        chartInstance.current.destroy();
-                    }
-                };
-            }, [selectedGroup, selectedStudentId, evaluations, evalItems, studentStats, groupStudents]);
-
-            return (
-                <div className="space-y-5 pb-12">
-                    {/* フィルタコントロール */}
-                    <div className="bg-white p-4 rounded-2xl shadow-sm border border-slate-200 flex flex-wrap gap-3 items-center justify-between">
-                        <div className="flex items-center gap-2 w-full sm:w-auto">
-                            <span className="text-xs font-bold text-slate-500 whitespace-nowrap">チーム:</span>
-                            <div className="flex gap-1 overflow-x-auto no-scrollbar py-1">
-                                {groups.map(g => (
-                                    <button
-                                        key={g}
-                                        onClick={() => { setSelectedGroup(g); setSelectedStudentId('ALL'); }}
-                                        className={`px-3 py-1.5 rounded-xl text-xs font-bold transition whitespace-nowrap ${
-                                            selectedGroup === g 
-                                                ? 'bg-indigo-600 text-white shadow-sm' 
-                                                : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-                                        }`}
-                                    >
-                                        {g === 'ALL' ? '全チーム' : g}
-                                    </button>
-                                ))}
-                            </div>
-                        </div>
-
-                        <div className="flex items-center gap-2 w-full sm:w-auto">
-                            <span className="text-xs font-bold text-slate-500 whitespace-nowrap">学生指定:</span>
-                            <select
-                                value={selectedStudentId}
-                                onChange={(e) => setSelectedStudentId(e.target.value)}
-                                className="w-full sm:w-48 px-3 py-1.5 bg-slate-50 border border-slate-300 rounded-xl text-xs font-bold outline-none focus:border-indigo-500"
-                            >
-                                <option value="ALL">指定なし (全員)</option>
-                                {groupStudents.map(s => (
-                                    <option key={s.id} value={s.id}>{s.name} ({s.group})</option>
-                                ))}
-                            </select>
-                        </div>
-                    </div>
-
-                    {/* 折れ線グラフカード */}
-                    <div className="bg-white p-4 sm:p-5 rounded-2xl shadow-sm border border-slate-200 space-y-3">
-                        <div className="flex justify-between items-center">
-                            <h3 className="font-bold text-slate-800 text-sm flex items-center gap-2">
-                                <i className="fas fa-chart-line text-indigo-600"></i>
-                                {selectedStudentId !== 'ALL' ? '個別項目別スコア推移 (5項目)' : '全体スコア推移'}
-                            </h3>
-                        </div>
-                        <div className="h-64 w-full relative">
-                            <canvas ref={chartRef}></canvas>
-                        </div>
-                    </div>
-
-                    {/* 学生スコア概要テーブル */}
-                    <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
-                        <div className="p-4 border-b border-slate-100 font-bold text-sm text-slate-800 flex justify-between items-center">
-                            <span>学生入力ステータス概要</span>
-                            <span className="text-xs font-normal text-slate-500">{groupStudents.length} 名対象</span>
-                        </div>
-                        <div className="divide-y divide-slate-100 overflow-x-auto">
-                            {studentStats.map(st => (
-                                <div key={st.id} className="p-3.5 flex items-center justify-between hover:bg-slate-50 transition min-w-[300px]">
-                                    <div className="flex items-center gap-3">
-                                        <span className="bg-slate-100 text-slate-600 text-xs font-semibold px-2.5 py-1 rounded-lg">
-                                            {st.group}
-                                        </span>
-                                        <div>
-                                            <div className="font-bold text-sm text-slate-800">{st.name}</div>
-                                            <div className="text-[10px] text-slate-400">{st.kana}</div>
-                                        </div>
-                                    </div>
-                                    <div className="flex items-center gap-4 text-right">
-                                        <div>
-                                            <div className="text-[10px] text-slate-400">入力数</div>
-                                            <div className="font-bold text-xs text-slate-700">{st.evalCount} 回</div>
-                                        </div>
-                                        <div>
-                                            <div className="text-[10px] text-slate-400">直近平均</div>
-                                            <div className="font-bold text-sm text-indigo-600">
-                                                {st.latestScore > 0 ? `${st.latestScore} 点` : '-'}
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
-                    </div>
-                </div>
-            );
-        }
-
-        function StudentManageTab({ students, onUpdateStudents, onImportBulk }) {
-            const [name, setName] = useState('');
-            const [group, setGroup] = useState('1班');
-            const [kana, setKana] = useState('');
-            const [bulkText, setBulkText] = useState('');
-            const [tabMode, setTabMode] = useState('single');
-
-            const handleAddSingle = (e) => {
-                e.preventDefault();
-                if (!name.trim()) return;
-                const newStudent = {
-                    id: 's_' + Date.now(),
-                    name: name.trim(),
-                    group,
-                    kana: kana.trim() || 'フリガナ未設定'
-                };
-                onUpdateStudents([...students, newStudent]);
-                setName('');
-                setKana('');
-            };
-
-            const handleBulkSubmit = (e) => {
-                e.preventDefault();
-                if (!bulkText.trim()) return;
-                const lines = bulkText.split('\n');
-                const parsed = [];
-                lines.forEach((line, idx) => {
-                    const parts = line.split(/[,,\t]/).map(s => s.trim()).filter(Boolean);
-                    if (parts.length > 0) {
-                        parsed.push({
-                            id: 's_bulk_' + Date.now() + '_' + idx,
-                            name: parts[0],
-                            group: parts[1] || '1班',
-                            kana: parts[2] || 'フリガナ未設定'
-                        });
-                    }
-                });
-                if (parsed.length > 0) {
-                    onImportBulk(parsed);
-                    setBulkText('');
-                }
-            };
-
-            const handleDelete = (id) => {
-                onUpdateStudents(students.filter(s => s.id !== id));
-            };
-
-            return (
-                <div className="space-y-6 pb-12">
-                    {/* 追加フォーム */}
-                    <div className="bg-white p-4 sm:p-6 rounded-2xl shadow-sm border border-slate-200 space-y-4">
-                        <div className="flex gap-2 border-b border-slate-100 pb-3">
-                            <button
-                                onClick={() => setTabMode('single')}
-                                className={`px-4 py-2 rounded-xl text-xs font-bold transition ${
-                                    tabMode === 'single' ? 'bg-indigo-600 text-white' : 'bg-slate-100 text-slate-600'
-                                }`}
-                            >
-                                1名ずつ追加
-                            </button>
-                            <button
-                                onClick={() => setTabMode('bulk')}
-                                className={`px-4 py-2 rounded-xl text-xs font-bold transition ${
-                                    tabMode === 'bulk' ? 'bg-indigo-600 text-white' : 'bg-slate-100 text-slate-600'
-                                }`}
-                            >
-                                スプレッドシート一括読込
-                            </button>
-                        </div>
-
-                        {tabMode === 'single' ? (
-                            <form onSubmit={handleAddSingle} className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                                <input
-                                    type="text"
-                                    placeholder="氏名 (例: 山田 太郎)"
-                                    value={name}
-                                    onChange={(e) => setName(e.target.value)}
-                                    className="px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs outline-none focus:border-indigo-500"
-                                />
-                                <input
-                                    type="text"
-                                    placeholder="班/チーム (例: 1班)"
-                                    value={group}
-                                    onChange={(e) => setGroup(e.target.value)}
-                                    className="px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs outline-none focus:border-indigo-500"
-                                />
-                                <button
-                                    type="submit"
-                                    className="bg-indigo-600 text-white font-bold text-xs py-2 px-4 rounded-xl shadow-md hover:bg-indigo-700"
-                                >
-                                    学生を追加
-                                </button>
-                            </form>
-                        ) : (
-                            <form onSubmit={handleBulkSubmit} className="space-y-3">
-                                <p className="text-xs text-slate-500">カンマ区切りまたはタブ区切りで貼り付けてください (形式: 氏名, 班名)</p>
-                                <textarea
-                                    value={bulkText}
-                                    onChange={(e) => setBulkText(e.target.value)}
-                                    rows="4"
-                                    placeholder="佐藤 拓海, 1班&#10;鈴木 葵, 1班&#10;高橋 陸, 2班"
-                                    className="w-full p-3 bg-slate-50 border border-slate-300 rounded-xl text-xs outline-none focus:border-indigo-500 font-mono"
-                                ></textarea>
-                                <button
-                                    type="submit"
-                                    className="bg-indigo-600 text-white font-bold text-xs py-2 px-4 rounded-xl shadow-md hover:bg-indigo-700"
-                                >
-                                    一括登録を実行
-                                </button>
-                            </form>
-                        )}
-                    </div>
-
-                    {/* 一覧表示 */}
-                    <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
-                        <div className="p-4 border-b border-slate-100 font-bold text-sm text-slate-800 flex justify-between items-center">
-                            <span>登録済み学生名簿</span>
-                            <button
-                                onClick={() => { if(confirm('本当に全員削除しますか？')) onUpdateStudents([]); }}
-                                className="text-xs text-rose-500 hover:underline font-normal"
-                            >
-                                全件クリア
-                            </button>
-                        </div>
-                        <div className="divide-y divide-slate-100">
-                            {students.map(s => (
-                                <div key={s.id} className="p-3.5 flex items-center justify-between hover:bg-slate-50">
-                                    <div className="flex items-center gap-3">
-                                        <span className="bg-slate-100 text-slate-600 text-xs font-semibold px-2 py-0.5 rounded">
-                                            {s.group}
-                                        </span>
-                                        <span className="font-bold text-sm text-slate-800">{s.name}</span>
-                                    </div>
-                                    <button
-                                        onClick={() => handleDelete(s.id)}
-                                        className="text-slate-400 hover:text-rose-500 p-1 text-xs"
-                                    >
-                                        <i className="fas fa-trash"></i> 削除
-                                    </button>
-                                </div>
-                            ))}
-                        </div>
-                    </div>
-                </div>
-            );
-        }
-
-        function App() {
-            // ローカルストレージベースの状態管理
-            const [students, setStudents] = useState(() => loadLocal(STORAGE_KEYS.STUDENTS, INITIAL_STUDENTS));
-            const [evaluations, setEvaluations] = useState(() => loadLocal(STORAGE_KEYS.EVALS, []));
-            const [userRole, setUserRole] = useState(() => loadLocal(STORAGE_KEYS.ROLE, 'admin')); // デフォルト管理
-
-            const [activeTab, setActiveTab] = useState('list'); // list, input, summary, manage
-            const [selectedGroupFilter, setSelectedGroupFilter] = useState('ALL');
+        // Initialization
+        window.addEventListener('DOMContentLoaded', () => {
+            loadLocalData();
+            renderTeamFilterButtons();
+            renderStudents();
+            populateStudentDropdowns();
             
-            // モーダル管理
-            const [evalTargetStudent, setEvalTargetStudent] = useState(null);
-            const [detailTargetStudent, setDetailTargetStudent] = useState(null);
-            const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
-            const [toastMessage, setToastMessage] = useState('');
+            // Restore Evaluator name/role
+            const savedRole = localStorage.getItem(STORAGE_EVALUATOR_ROLE);
+            if (savedRole) setEvaluatorRole(savedRole);
+            const savedName = localStorage.getItem(STORAGE_EVALUATOR_NAME);
+            if (savedName) document.getElementById('evaluatorNameInput').value = savedName;
+        });
 
-            // データ保存時の自動永続化
-            useEffect(() => { saveLocal(STORAGE_KEYS.STUDENTS, students); }, [students]);
-            useEffect(() => { saveLocal(STORAGE_KEYS.EVALS, evaluations); }, [evaluations]);
-            useEffect(() => { saveLocal(STORAGE_KEYS.ROLE, userRole); }, [userRole]);
+        // Load / Save Functions
+        function loadLocalData() {
+            const savedStudents = localStorage.getItem(STORAGE_STUDENTS);
+            if (savedStudents) {
+                try { students = JSON.parse(savedStudents); } catch (e) { students = [...DEFAULT_STUDENTS]; }
+            } else {
+                students = [...DEFAULT_STUDENTS];
+                localStorage.setItem(STORAGE_STUDENTS, JSON.stringify(students));
+            }
 
-            const showToast = (msg) => {
-                setToastMessage(msg);
-                setTimeout(() => setToastMessage(''), 3000);
-            };
-
-            const handleSaveEvaluation = (newEval) => {
-                setEvaluations(prev => [...prev, newEval]);
-                setEvalTargetStudent(null);
-                showToast('記録しました');
-            };
-
-            const groups = useMemo(() => ['ALL', ...new Set(students.map(s => s.group))], [students]);
-            const filteredStudents = useMemo(() => {
-                return students.filter(s => selectedGroupFilter === 'ALL' || s.group === selectedGroupFilter);
-            }, [students, selectedGroupFilter]);
-
-            return (
-                <div className="max-w-3xl mx-auto min-h-screen flex flex-col bg-slate-100">
-                    {/* トースト通知 */}
-                    {toastMessage && (
-                        <div className="fixed top-4 left-1/2 -translate-x-1/2 z-50 bg-slate-900 text-white text-xs font-bold px-4 py-2.5 rounded-full shadow-lg flex items-center gap-2 animate-bounce">
-                            <i className="fas fa-check-circle text-teal-400"></i> {toastMessage}
-                        </div>
-                    )}
-
-                    {/* ヘッダー */}
-                    <header className="bg-slate-900 text-white px-4 py-3 sticky top-0 z-30 shadow-md flex justify-between items-center">
-                        <div className="flex items-center gap-2 min-w-0">
-                            <h1 className="font-extrabold text-base sm:text-lg tracking-tight truncate">TURE-TECH学生一覧</h1>
-                        </div>
-                        <div className="flex items-center gap-2 shrink-0">
-                            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-emerald-500/20 text-emerald-300 rounded-full text-[11px] font-semibold border border-emerald-500/30 shrink-0">
-                                <span className="w-2 h-2 bg-emerald-400 rounded-full animate-pulse"></span> 同期中
-                            </span>
-                            <button
-                                onClick={() => {
-                                    if (userRole === 'admin') {
-                                        setUserRole('user');
-                                        showToast('メンサポモードに切替ました');
-                                    } else {
-                                        setIsAuthModalOpen(true);
-                                    }
-                                }}
-                                className={`px-2.5 py-1 rounded-full text-xs font-bold transition flex items-center gap-1 shrink-0 ${
-                                    userRole === 'admin' ? 'bg-indigo-600 text-white' : 'bg-slate-700 text-slate-300'
-                                }`}
-                            >
-                                {userRole === 'admin' ? '🔒 運営' : '👤 メンサポ'} (切替)
-                            </button>
-                        </div>
-                    </header>
-
-                    {/* メインコンテンツ */}
-                    <main className="flex-1 p-4 pb-20">
-                        {/* グループ選択ピル (一覧＆入力タブ用) */}
-                        {(activeTab === 'list' || activeTab === 'input') && (
-                            <div className="flex gap-1.5 overflow-x-auto no-scrollbar pb-3">
-                                {groups.map(g => (
-                                    <button
-                                        key={g}
-                                        onClick={() => setSelectedGroupFilter(g)}
-                                        className={`px-3.5 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition ${
-                                            selectedGroupFilter === g 
-                                                ? 'bg-slate-800 text-white shadow-sm' 
-                                                : 'bg-white text-slate-600 hover:bg-slate-200 border border-slate-200'
-                                        }`}
-                                    >
-                                        {g === 'ALL' ? '全員' : g}
-                                    </button>
-                                ))}
-                            </div>
-                        )}
-
-                        {/* 1. 一覧タブ */}
-                        {activeTab === 'list' && (
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                                {filteredStudents.map(student => {
-                                    const studentEvals = evaluations.filter(e => e.studentId === student.id);
-                                    return (
-                                        <div
-                                            key={student.id}
-                                            onClick={() => setDetailTargetStudent(student)}
-                                            className="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm hover:shadow-md transition cursor-pointer flex justify-between items-center"
-                                        >
-                                            <div className="space-y-1">
-                                                <span className="bg-slate-100 text-slate-600 text-[10px] font-bold px-2 py-0.5 rounded">
-                                                    {student.group}
-                                                </span>
-                                                <h3 className="font-bold text-base text-slate-800">{student.name}</h3>
-                                            </div>
-                                            <div className="text-right">
-                                                <span className="text-xs text-indigo-600 bg-indigo-50 font-bold px-2.5 py-1 rounded-full">
-                                                    記録 {studentEvals.length} 件
-                                                </span>
-                                            </div>
-                                        </div>
-                                    );
-                                })}
-                            </div>
-                        )}
-
-                        {/* 2. 入力タブ */}
-                        {activeTab === 'input' && (
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                                {filteredStudents.map(student => (
-                                    <div
-                                        key={student.id}
-                                        className="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm flex justify-between items-center"
-                                    >
-                                        <div>
-                                            <span className="bg-slate-100 text-slate-600 text-[10px] font-bold px-2 py-0.5 rounded">
-                                                {student.group}
-                                            </span>
-                                            <h3 className="font-bold text-base text-slate-800 mt-0.5">{student.name}</h3>
-                                        </div>
-                                        <button
-                                            onClick={() => setEvalTargetStudent(student)}
-                                            className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs px-3.5 py-2 rounded-xl shadow-sm flex items-center gap-1.5"
-                                        >
-                                            <i className="fas fa-pencil-alt"></i> 入力
-                                        </button>
-                                    </div>
-                                ))}
-                            </div>
-                        )}
-
-                        {/* 3. 集計・推移タブ */}
-                        {activeTab === 'summary' && (
-                            <SummaryTab
-                                students={students}
-                                evaluations={evaluations}
-                                evalItems={EVAL_ITEMS}
-                                userRole={userRole}
-                            />
-                        )}
-
-                        {/* 4. 学生管理タブ */}
-                        {activeTab === 'manage' && (
-                            <StudentManageTab
-                                students={students}
-                                onUpdateStudents={setStudents}
-                                onImportBulk={(bulk) => setStudents(prev => [...prev, ...bulk])}
-                            />
-                        )}
-                    </main>
-
-                    {/* 下部固定ナビゲーションバー */}
-                    <nav className="fixed bottom-0 left-0 right-0 max-w-3xl mx-auto bg-white border-t border-slate-200 z-40 flex justify-around py-2 shadow-lg">
-                        <button
-                            onClick={() => setActiveTab('list')}
-                            className={`flex flex-col items-center gap-1 text-[11px] font-bold px-3 py-1 transition ${
-                                activeTab === 'list' ? 'text-indigo-600' : 'text-slate-400'
-                            }`}
-                        >
-                            <i className="fas fa-users text-base"></i> 学生一覧
-                        </button>
-                        <button
-                            onClick={() => setActiveTab('input')}
-                            className={`flex flex-col items-center gap-1 text-[11px] font-bold px-3 py-1 transition ${
-                                activeTab === 'input' ? 'text-indigo-600' : 'text-slate-400'
-                            }`}
-                        >
-                            <i className="fas fa-pencil-alt text-base"></i> 入力
-                        </button>
-                        <button
-                            onClick={() => setActiveTab('summary')}
-                            className={`flex flex-col items-center gap-1 text-[11px] font-bold px-3 py-1 transition ${
-                                activeTab === 'summary' ? 'text-indigo-600' : 'text-slate-400'
-                            }`}
-                        >
-                            <i className="fas fa-chart-line text-base"></i> 集計・推移
-                        </button>
-                        {userRole === 'admin' && (
-                            <button
-                                onClick={() => setActiveTab('manage')}
-                                className={`flex flex-col items-center gap-1 text-[11px] font-bold px-3 py-1 transition ${
-                                    activeTab === 'manage' ? 'text-indigo-600' : 'text-slate-400'
-                                }`}
-                            >
-                                <i className="fas fa-cog text-base"></i> 学生管理
-                            </button>
-                        )}
-                    </nav>
-
-                    {/* 各種モーダル */}
-                    <AuthModal
-                        isOpen={isAuthModalOpen}
-                        onClose={() => setIsAuthModalOpen(false)}
-                        onSuccess={() => {
-                            setUserRole('admin');
-                            setIsAuthModalOpen(false);
-                            showToast('運営モードに切り替えました');
-                        }}
-                    />
-
-                    <EvalModal
-                        student={evalTargetStudent}
-                        evalItems={EVAL_ITEMS}
-                        onClose={() => setEvalTargetStudent(null)}
-                        onSave={handleSaveEvaluation}
-                    />
-
-                    <DetailModal
-                        student={detailTargetStudent}
-                        evaluations={evaluations.filter(e => e.studentId === detailTargetStudent?.id)}
-                        evalItems={EVAL_ITEMS}
-                        userRole={userRole}
-                        onClose={() => setDetailTargetStudent(null)}
-                        onOpenEval={(st) => setEvalTargetStudent(st)}
-                    />
-                </div>
-            );
+            const savedEvals = localStorage.getItem(STORAGE_EVALS);
+            if (savedEvals) {
+                try { evaluations = JSON.parse(savedEvals); } catch (e) { evaluations = []; }
+            } else {
+                evaluations = [];
+            }
         }
 
-        const root = ReactDOM.createRoot(document.getElementById('root'));
-        root.render(<App />);
+        function saveData() {
+            localStorage.setItem(STORAGE_STUDENTS, JSON.stringify(students));
+            localStorage.setItem(STORAGE_EVALS, JSON.stringify(evaluations));
+        }
+
+        // Tab Switching Logic
+        function switchTab(tabName) {
+            ['list', 'analytics', 'settings'].forEach(t => {
+                document.getElementById(`view-${t}`).classList.add('hidden');
+                document.getElementById(`tab-${t}`).classList.remove('tab-active');
+            });
+            document.getElementById(`view-${tabName}`).classList.remove('hidden');
+            document.getElementById(`tab-${tabName}`).classList.add('tab-active');
+
+            if (tabName === 'analytics') {
+                renderIndividualTrendChart();
+                renderHistoryTable();
+            }
+        }
+
+        // Team Filter Buttons
+        function renderTeamFilterButtons() {
+            const teams = ['ALL', 'Aチーム', 'Bチーム', 'Cチーム', 'Dチーム', 'Eチーム'];
+            const container = document.getElementById('teamFilterButtons');
+            container.innerHTML = teams.map(t => `
+                <button onclick="setTeamFilter('${t}')" class="px-3 py-1.5 text-xs font-semibold rounded-lg transition ${selectedTeamFilter === t ? 'bg-blue-600 text-white shadow-sm' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}">
+                    ${t === 'ALL' ? '全チーム' : t}
+                </button>
+            `).join('');
+        }
+
+        function setTeamFilter(team) {
+            selectedTeamFilter = team;
+            renderTeamFilterButtons();
+            renderStudents();
+        }
+
+        // Render Student Cards Grid
+        function renderStudents() {
+            const query = document.getElementById('searchInput').value.trim().toLowerCase();
+            const grid = document.getElementById('studentGrid');
+
+            const filtered = students.filter(s => {
+                const matchesTeam = (selectedTeamFilter === 'ALL' || s.group === selectedTeamFilter);
+                const matchesSearch = s.name.toLowerCase().includes(query) || s.kana.toLowerCase().includes(query);
+                return matchesTeam && matchesSearch;
+            });
+
+            if (filtered.length === 0) {
+                grid.innerHTML = `<div class="col-span-full py-12 text-center text-slate-400 text-sm">該当する学生が見つかりません</div>`;
+                return;
+            }
+
+            grid.innerHTML = filtered.map(s => {
+                const studentEvals = evaluations.filter(e => e.studentId === s.id);
+                const count = studentEvals.length;
+                let lastScore = '-';
+                let lastTime = '未入力';
+
+                if (count > 0) {
+                    const latest = studentEvals[studentEvals.length - 1];
+                    const scores = Object.values(latest.scores);
+                    const avg = (scores.reduce((a, b) => a + b, 0) / scores.length).toFixed(1);
+                    lastScore = `${avg}点`;
+                    lastTime = new Date(latest.timestamp).toLocaleDateString('ja-JP', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+                }
+
+                return `
+                    <div class="bg-white rounded-xl p-4 shadow-sm border border-slate-200 flex flex-col justify-between space-y-3 hover:border-blue-300 transition">
+                        <div>
+                            <div class="flex justify-between items-start">
+                                <span class="text-[10px] font-bold px-2 py-0.5 rounded bg-slate-100 text-slate-600 border border-slate-200">${s.group}</span>
+                                <span class="text-[11px] text-slate-400 font-medium"><i class="fa-solid fa-clock-rotate-left mr-1"></i>${lastTime}</span>
+                            </div>
+                            <h3 class="font-bold text-slate-800 text-base mt-1">${s.name}</h3>
+                            <p class="text-[10px] text-slate-400">${s.kana}</p>
+                        </div>
+
+                        <div class="bg-slate-50 p-2.5 rounded-lg flex justify-between items-center text-xs">
+                            <span class="text-slate-500">入力回数: <strong class="text-slate-800">${count}回</strong></span>
+                            <span class="text-slate-500">直近平均: <strong class="text-blue-600 font-bold">${lastScore}</strong></span>
+                        </div>
+
+                        <div class="grid grid-cols-2 gap-2 pt-1">
+                            <button onclick="openEvalModal('${s.id}')" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 rounded-lg text-xs shadow-sm flex items-center justify-center space-x-1 transition">
+                                <i class="fa-solid fa-pen-to-square"></i>
+                                <span>入力</span>
+                            </button>
+                            <button onclick="openKarteModal('${s.id}')" class="bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold py-2 rounded-lg text-xs flex items-center justify-center space-x-1 transition">
+                                <i class="fa-solid fa-chart-line text-blue-600"></i>
+                                <span>カルテ</span>
+                            </button>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        // Modal Form Controls & Validation
+        function openEvalModal(studentId) {
+            currentStudentForModal = students.find(s => s.id === studentId);
+            if (!currentStudentForModal) return;
+
+            document.getElementById('modalTeamBadge').textContent = currentStudentForModal.group;
+            document.getElementById('modalStudentName').textContent = currentStudentForModal.name;
+
+            // Reset scores
+            ['c1', 'c2', 'c3', 'c4', 'c5'].forEach(c => {
+                document.getElementById(`score_${c}`).value = 3;
+                document.getElementById(`val_${c}`).textContent = '3点';
+            });
+
+            document.getElementById('commentInput').value = '';
+            validateModalForm();
+
+            document.getElementById('evalModal').classList.remove('hidden');
+        }
+
+        function closeEvalModal() {
+            document.getElementById('evalModal').classList.add('hidden');
+            currentStudentForModal = null;
+        }
+
+        function setEvaluatorRole(role) {
+            currentEvaluatorRole = role;
+            localStorage.setItem(STORAGE_EVALUATOR_ROLE, role);
+            
+            const mentorBtn = document.getElementById('roleMentorBtn');
+            const supporterBtn = document.getElementById('roleSupporterBtn');
+
+            if (role === 'メンター') {
+                mentorBtn.className = "py-2 text-xs font-bold rounded-lg border text-center transition bg-blue-600 text-white border-blue-600 shadow-sm";
+                supporterBtn.className = "py-2 text-xs font-bold rounded-lg border text-center transition bg-white text-slate-600 border-slate-300";
+            } else {
+                mentorBtn.className = "py-2 text-xs font-bold rounded-lg border text-center transition bg-white text-slate-600 border-slate-300";
+                supporterBtn.className = "py-2 text-xs font-bold rounded-lg border text-center transition bg-blue-600 text-white border-blue-600 shadow-sm";
+            }
+        }
+
+        function updateScoreDisplay(key) {
+            const val = document.getElementById(`score_${key}`).value;
+            document.getElementById(`val_${key}`).textContent = `${val}点`;
+        }
+
+        function validateModalForm() {
+            const evalName = document.getElementById('evaluatorNameInput').value.trim();
+            const comment = document.getElementById('commentInput').value.trim();
+            const saveBtn = document.getElementById('saveEvalBtn');
+
+            if (evalName.length > 0 && comment.length > 0) {
+                saveBtn.disabled = false;
+            } else {
+                saveBtn.disabled = true;
+            }
+        }
+
+        function saveEvaluation() {
+            if (!currentStudentForModal) return;
+
+            const evalName = document.getElementById('evaluatorNameInput').value.trim();
+            const comment = document.getElementById('commentInput').value.trim();
+
+            if (!evalName || !comment) return;
+
+            localStorage.setItem(STORAGE_EVALUATOR_NAME, evalName);
+
+            const record = {
+                id: 'eval_' + Date.now(),
+                studentId: currentStudentForModal.id,
+                studentName: currentStudentForModal.name,
+                group: currentStudentForModal.group,
+                evaluatorRole: currentEvaluatorRole,
+                evaluatorName: evalName,
+                timestamp: new Date().toISOString(),
+                scores: {
+                    c1: parseInt(document.getElementById('score_c1').value, 10),
+                    c2: parseInt(document.getElementById('score_c2').value, 10),
+                    c3: parseInt(document.getElementById('score_c3').value, 10),
+                    c4: parseInt(document.getElementById('score_c4').value, 10),
+                    c5: parseInt(document.getElementById('score_c5').value, 10)
+                },
+                comment: comment
+            };
+
+            evaluations.push(record);
+            saveData();
+            closeEvalModal();
+            renderStudents();
+            populateStudentDropdowns();
+
+            // Flash success state
+            const syncStatus = document.getElementById('syncStatus');
+            syncStatus.className = "inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-blue-500/30 text-white border border-blue-400";
+            syncStatus.innerHTML = `<i class="fa-solid fa-check mr-1 text-emerald-400"></i> 保存完了`;
+            setTimeout(() => {
+                syncStatus.className = "inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-emerald-500/20 text-emerald-300 border border-emerald-500/30";
+                syncStatus.innerHTML = `<span class="w-2 h-2 mr-1.5 bg-emerald-400 rounded-full animate-pulse"></span> データ保存中`;
+            }, 2000);
+        }
+
+        // Student Dropdowns Setup
+        function populateStudentDropdowns() {
+            const select = document.getElementById('analyticsStudentSelect');
+            select.innerHTML = students.map(s => `<option value="${s.id}">${s.group} - ${s.name}</option>`).join('');
+        }
+
+        // Render 5-Item Line Chart for Selected Student
+        function renderIndividualTrendChart() {
+            const studentId = document.getElementById('analyticsStudentSelect').value || (students[0] && students[0].id);
+            if (!studentId) return;
+
+            const studentEvals = evaluations
+                .filter(e => e.studentId === studentId)
+                .sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
+
+            const ctx = document.getElementById('individualTrendChart').getContext('2d');
+
+            if (analyticsChartInstance) {
+                analyticsChartInstance.destroy();
+            }
+
+            const labels = studentEvals.map((e, idx) => {
+                const d = new Date(e.timestamp);
+                return `${d.getMonth() + 1}/${d.getDate()} ${d.getHours()}:${String(d.getMinutes()).padStart(2, '0')} (${e.evaluatorName})`;
+            });
+
+            // 5 Criteria Datasets
+            const datasets = [
+                {
+                    label: '1. 論点整理・前提理解',
+                    data: studentEvals.map(e => e.scores.c1),
+                    borderColor: '#2563eb', // Blue
+                    backgroundColor: '#2563eb',
+                    tension: 0.2
+                },
+                {
+                    label: '2. 課題特定',
+                    data: studentEvals.map(e => e.scores.c2),
+                    borderColor: '#059669', // Emerald Green
+                    backgroundColor: '#059669',
+                    tension: 0.2
+                },
+                {
+                    label: '3. 根拠・論拠の明確さ',
+                    data: studentEvals.map(e => e.scores.c3),
+                    borderColor: '#d97706', // Amber/Yellow
+                    backgroundColor: '#d97706',
+                    tension: 0.2
+                },
+                {
+                    label: '4. 巻き込み・合意形成',
+                    data: studentEvals.map(e => e.scores.c4),
+                    borderColor: '#7c3aed', // Purple
+                    backgroundColor: '#7c3aed',
+                    tension: 0.2
+                },
+                {
+                    label: '5. 他者尊重',
+                    data: studentEvals.map(e => e.scores.c5),
+                    borderColor: '#e11d48', // Rose Red
+                    backgroundColor: '#e11d48',
+                    tension: 0.2
+                }
+            ];
+
+            analyticsChartInstance = new Chart(ctx, {
+                type: 'line',
+                data: { labels, datasets },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: { min: 1, max: 5, ticks: { stepSize: 1 } }
+                    },
+                    plugins: {
+                        legend: { position: 'top', labels: { boxWidth: 12, font: { size: 10 } } }
+                    }
+                }
+            });
+        }
+
+        // Render Individual Karte Modal
+        function openKarteModal(studentId) {
+            const student = students.find(s => s.id === studentId);
+            if (!student) return;
+
+            document.getElementById('karteTeamBadge').textContent = student.group;
+            document.getElementById('karteStudentName').textContent = `${student.name} カルテ`;
+
+            const studentEvals = evaluations
+                .filter(e => e.studentId === studentId)
+                .sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
+
+            // Render Karte Chart
+            const ctx = document.getElementById('karteTrendChart').getContext('2d');
+            if (karteChartInstance) {
+                karteChartInstance.destroy();
+            }
+
+            const labels = studentEvals.map((e, idx) => {
+                const d = new Date(e.timestamp);
+                return `${d.getMonth() + 1}/${d.getDate()} ${d.getHours()}:${String(d.getMinutes()).padStart(2, '0')}`;
+            });
+
+            karteChartInstance = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels,
+                    datasets: [
+                        { label: '論点整理', data: studentEvals.map(e => e.scores.c1), borderColor: '#2563eb', backgroundColor: '#2563eb' },
+                        { label: '課題特定', data: studentEvals.map(e => e.scores.c2), borderColor: '#059669', backgroundColor: '#059669' },
+                        { label: '根拠・論拠', data: studentEvals.map(e => e.scores.c3), borderColor: '#d97706', backgroundColor: '#d97706' },
+                        { label: '巻き込み', data: studentEvals.map(e => e.scores.c4), borderColor: '#7c3aed', backgroundColor: '#7c3aed' },
+                        { label: '他者尊重', data: studentEvals.map(e => e.scores.c5), borderColor: '#e11d48', backgroundColor: '#e11d48' }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: { y: { min: 1, max: 5, ticks: { stepSize: 1 } } },
+                    plugins: { legend: { position: 'top', labels: { boxWidth: 10, font: { size: 9 } } } }
+                }
+            });
+
+            // History Cards
+            const historyList = document.getElementById('karteHistoryList');
+            if (studentEvals.length === 0) {
+                historyList.innerHTML = `<p class="text-xs text-slate-400 py-4 text-center">まだ入力履歴がありません</p>`;
+            } else {
+                historyList.innerHTML = studentEvals.slice().reverse().map(e => {
+                    const dateStr = new Date(e.timestamp).toLocaleString('ja-JP');
+                    return `
+                        <div class="bg-slate-50 p-3 rounded-lg border border-slate-200 text-xs space-y-2">
+                            <div class="flex justify-between text-slate-500 font-medium">
+                                <span><i class="fa-solid fa-user-pen mr-1"></i>[${e.evaluatorRole}] ${e.evaluatorName}</span>
+                                <span>${dateStr}</span>
+                            </div>
+                            <div class="flex space-x-2 text-[10px] font-bold">
+                                <span class="bg-blue-100 text-blue-800 px-1.5 py-0.5 rounded">論点:${e.scores.c1}</span>
+                                <span class="bg-emerald-100 text-emerald-800 px-1.5 py-0.5 rounded">課題:${e.scores.c2}</span>
+                                <span class="bg-amber-100 text-amber-800 px-1.5 py-0.5 rounded">根拠:${e.scores.c3}</span>
+                                <span class="bg-purple-100 text-purple-800 px-1.5 py-0.5 rounded">巻込:${e.scores.c4}</span>
+                                <span class="bg-rose-100 text-rose-800 px-1.5 py-0.5 rounded">尊重:${e.scores.c5}</span>
+                            </div>
+                            <p class="text-slate-700 bg-white p-2 rounded border border-slate-100 whitespace-pre-wrap">${e.comment}</p>
+                        </div>
+                    `;
+                }).join('');
+            }
+
+            document.getElementById('karteModal').classList.remove('hidden');
+        }
+
+        function closeKarteModal() {
+            document.getElementById('karteModal').classList.add('hidden');
+        }
+
+        // History Log Table Render
+        function renderHistoryTable() {
+            const tbody = document.getElementById('historyTableBody');
+            document.getElementById('logCountBadge').textContent = `${evaluations.length}件`;
+
+            if (evaluations.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="11" class="p-6 text-center text-slate-400">入力データが存在しません</td></tr>`;
+                return;
+            }
+
+            const sorted = evaluations.slice().sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+
+            tbody.innerHTML = sorted.map(e => {
+                const dateStr = new Date(e.timestamp).toLocaleString('ja-JP', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+                return `
+                    <tr class="hover:bg-slate-50 transition">
+                        <td class="p-3 text-slate-500 font-mono">${dateStr}</td>
+                        <td class="p-3 font-bold text-slate-800">${e.studentName}</td>
+                        <td class="p-3"><span class="text-[10px] font-semibold px-1.5 py-0.5 rounded bg-slate-100">${e.group}</span></td>
+                        <td class="p-3 text-slate-600">[${e.evaluatorRole}] ${e.evaluatorName}</td>
+                        <td class="p-3 text-center font-bold text-blue-600">${e.scores.c1}</td>
+                        <td class="p-3 text-center font-bold text-emerald-600">${e.scores.c2}</td>
+                        <td class="p-3 text-center font-bold text-amber-600">${e.scores.c3}</td>
+                        <td class="p-3 text-center font-bold text-purple-600">${e.scores.c4}</td>
+                        <td class="p-3 text-center font-bold text-rose-600">${e.scores.c5}</td>
+                        <td class="p-3 max-w-xs truncate text-slate-600" title="${e.comment}">${e.comment}</td>
+                        <td class="p-3 text-center">
+                            <button onclick="deleteSingleEval('${e.id}')" class="text-rose-500 hover:text-rose-700 p-1">
+                                <i class="fa-solid fa-trash-can"></i>
+                            </button>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        function deleteSingleEval(id) {
+            evaluations = evaluations.filter(e => e.id !== id);
+            saveData();
+            renderStudents();
+            renderHistoryTable();
+            renderIndividualTrendChart();
+        }
+
+        // Export to Excel (.xlsx)
+        function exportToExcel() {
+            if (evaluations.length === 0) {
+                alert('出力する評価データがまだありません。');
+                return;
+            }
+
+            // Sheet 1: 全評価ログ
+            const logData = evaluations.map(e => ({
+                '日時': new Date(e.timestamp).toLocaleString('ja-JP'),
+                'チーム': e.group,
+                '学生名': e.studentName,
+                '記入者役職': e.evaluatorRole,
+                '記入者氏名': e.evaluatorName,
+                '1.論点整理・前提理解': e.scores.c1,
+                '2.課題特定': e.scores.c2,
+                '3.根拠・論拠の明確さ': e.scores.c3,
+                '4.巻き込み・合意形成': e.scores.c4,
+                '5.他者尊重': e.scores.c5,
+                '所感メモ': e.comment
+            }));
+
+            // Sheet 2: 学生別サマリー
+            const summaryData = students.map(s => {
+                const sEvals = evaluations.filter(e => e.studentId === s.id);
+                const count = sEvals.length;
+                let avg1 = 0, avg2 = 0, avg3 = 0, avg4 = 0, avg5 = 0, overallAvg = 0;
+
+                if (count > 0) {
+                    avg1 = (sEvals.reduce((a, b) => a + b.scores.c1, 0) / count).toFixed(2);
+                    avg2 = (sEvals.reduce((a, b) => a + b.scores.c2, 0) / count).toFixed(2);
+                    avg3 = (sEvals.reduce((a, b) => a + b.scores.c3, 0) / count).toFixed(2);
+                    avg4 = (sEvals.reduce((a, b) => a + b.scores.c4, 0) / count).toFixed(2);
+                    avg5 = (sEvals.reduce((a, b) => a + b.scores.c5, 0) / count).toFixed(2);
+                    overallAvg = ((parseFloat(avg1) + parseFloat(avg2) + parseFloat(avg3) + parseFloat(avg4) + parseFloat(avg5)) / 5).toFixed(2);
+                }
+
+                return {
+                    'チーム': s.group,
+                    '学生名': s.name,
+                    'フリガナ': s.kana,
+                    '評価入力回数': count,
+                    '平均_論点整理': count > 0 ? avg1 : '-',
+                    '平均_課題特定': count > 0 ? avg2 : '-',
+                    '平均_根拠明確さ': count > 0 ? avg3 : '-',
+                    '平均_巻き込み': count > 0 ? avg4 : '-',
+                    '平均_他者尊重': count > 0 ? avg5 : '-',
+                    '総合平均点': count > 0 ? overallAvg : '-'
+                };
+            });
+
+            const wb = XLSX.utils.book_new();
+            const wsLogs = XLSX.utils.json_to_sheet(logData);
+            const wsSummary = XLSX.utils.json_to_sheet(summaryData);
+
+            XLSX.utils.book_append_sheet(wb, wsLogs, "全評価ログ");
+            XLSX.utils.book_append_sheet(wb, wsSummary, "学生別サマリー");
+
+            const fileName = `TURE-TECH_評価データ_${new Date().toISOString().slice(0, 10)}.xlsx`;
+            XLSX.writeFile(wb, fileName);
+        }
+
+        // Settings / Clear Functions
+        function clearAllEvaluations() {
+            if (confirm('全ての評価ログデータを削除してもよろしいですか？（この操作は取り消せません）')) {
+                evaluations = [];
+                saveData();
+                renderStudents();
+                renderHistoryTable();
+                renderIndividualTrendChart();
+                alert('全評価ログを削除しました。');
+            }
+        }
+
+        function resetStudentsToDefault() {
+            if (confirm('学生リスト（30名）を初期状態にリセットしますか？')) {
+                students = [...DEFAULT_STUDENTS];
+                saveData();
+                renderStudents();
+                populateStudentDropdowns();
+                alert('学生リストを初期化しました。');
+            }
+        }
     </script>
 </body>
 </html>
