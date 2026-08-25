@@ -6,7 +6,7 @@
     <title>TURE-TECH 学生評価・カルテ管理</title>
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Font Awesome -->
+    <!-- Font Awesome Icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <!-- Chart.js -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -21,20 +21,20 @@
 </head>
 <body class="bg-slate-50 text-slate-800 min-h-screen pb-16">
 
-    <!-- Header -->
+    <!-- Application Header -->
     <header class="bg-slate-900 text-white shadow-md sticky top-0 z-30">
         <div class="max-w-6xl mx-auto px-4 py-3 flex justify-between items-center">
             <div class="flex items-center space-x-3">
                 <div class="bg-blue-600 text-white p-2 rounded-lg font-bold text-lg">TT</div>
                 <div>
                     <h1 class="font-bold text-lg leading-tight">TURE-TECH 評価・カルテ</h1>
-                    <p class="text-xs text-slate-400">学生評価 & 時系列カルテ管理システム</p>
+                    <p class="text-xs text-slate-400">スプレッドシート連携型 学生評価管理システム</p>
                 </div>
             </div>
             <div class="flex items-center space-x-2">
-                <span id="syncStatus" class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
-                    <span class="w-2 h-2 mr-1.5 bg-emerald-400 rounded-full animate-pulse"></span>
-                    データ保存中
+                <span id="syncStatus" class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-amber-500/20 text-amber-300 border border-amber-500/30">
+                    <span class="w-2 h-2 mr-1.5 bg-amber-400 rounded-full animate-pulse"></span>
+                    クラウド確認中...
                 </span>
             </div>
         </div>
@@ -78,11 +78,11 @@
 
         <!-- TAB 2: 集計・推移画面 -->
         <section id="view-analytics" class="space-y-6 hidden">
-            <!-- Analytics Header / Excel Button -->
+            <!-- Analytics Header / Excel Export Button -->
             <div class="bg-white p-5 rounded-xl shadow-sm border border-slate-200 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                 <div>
                     <h2 class="text-lg font-bold text-slate-800">評価分析 & 時系列推移</h2>
-                    <p class="text-xs text-slate-500">入力ごとの5項目スコア推移を個別グラフで分析できます</p>
+                    <p class="text-xs text-slate-500">入力ごとの5項目スコア推移を個別グラフで分析・確認できます</p>
                 </div>
                 <button onclick="exportToExcel()" class="bg-emerald-600 hover:bg-emerald-700 text-white font-medium px-4 py-2 rounded-lg text-sm shadow-sm flex items-center space-x-2 transition">
                     <i class="fa-solid fa-file-excel text-base"></i>
@@ -90,7 +90,7 @@
                 </button>
             </div>
 
-            <!-- Student Selector for Detailed Trend -->
+            <!-- Student Selector for Detailed Trend Chart -->
             <div class="bg-white p-5 rounded-xl shadow-sm border border-slate-200 space-y-4">
                 <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 pb-4">
                     <label class="text-sm font-bold text-slate-700 flex items-center space-x-2">
@@ -144,7 +144,7 @@
 
     </main>
 
-    <!-- MODAL 1: 評価入力モーダル -->
+    <!-- MODAL 1: 評価入力・編集モーダル -->
     <div id="evalModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
         <div class="bg-white rounded-2xl shadow-xl max-w-lg w-full max-h-[90vh] overflow-y-auto border border-slate-200">
             <!-- Modal Header -->
@@ -179,7 +179,7 @@
                            class="w-full text-xs p-2.5 bg-white border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
                 </div>
 
-                <!-- 5 Criteria Ratings -->
+                <!-- 5 Criteria Rating Sliders -->
                 <div class="space-y-4">
                     <h4 class="text-xs font-bold text-slate-700 border-b border-slate-100 pb-1">評価スコア (1〜5点)</h4>
 
@@ -196,36 +196,36 @@
                     <div class="space-y-1">
                         <div class="flex justify-between items-center text-xs">
                             <span class="font-semibold text-slate-700">2. 課題特定</span>
-                            <span id="val_c2" class="font-bold text-blue-600">3点</span>
+                            <span id="val_c2" class="font-bold text-emerald-600">3点</span>
                         </div>
-                        <input type="range" id="score_c2" min="1" max="5" value="3" oninput="updateScoreDisplay('c2')" class="w-full accent-blue-600">
+                        <input type="range" id="score_c2" min="1" max="5" value="3" oninput="updateScoreDisplay('c2')" class="w-full accent-emerald-600">
                     </div>
 
                     <!-- 3. 根拠・論拠の明確さ -->
                     <div class="space-y-1">
                         <div class="flex justify-between items-center text-xs">
                             <span class="font-semibold text-slate-700">3. 根拠・論拠の明確さ</span>
-                            <span id="val_c3" class="font-bold text-blue-600">3点</span>
+                            <span id="val_c3" class="font-bold text-amber-600">3点</span>
                         </div>
-                        <input type="range" id="score_c3" min="1" max="5" value="3" oninput="updateScoreDisplay('c3')" class="w-full accent-blue-600">
+                        <input type="range" id="score_c3" min="1" max="5" value="3" oninput="updateScoreDisplay('c3')" class="w-full accent-amber-600">
                     </div>
 
                     <!-- 4. 巻き込み・合意形成 -->
                     <div class="space-y-1">
                         <div class="flex justify-between items-center text-xs">
                             <span class="font-semibold text-slate-700">4. 巻き込み・合意形成</span>
-                            <span id="val_c4" class="font-bold text-blue-600">3点</span>
+                            <span id="val_c4" class="font-bold text-purple-600">3点</span>
                         </div>
-                        <input type="range" id="score_c4" min="1" max="5" value="3" oninput="updateScoreDisplay('c4')" class="w-full accent-blue-600">
+                        <input type="range" id="score_c4" min="1" max="5" value="3" oninput="updateScoreDisplay('c4')" class="w-full accent-purple-600">
                     </div>
 
                     <!-- 5. 他者尊重 -->
                     <div class="space-y-1">
                         <div class="flex justify-between items-center text-xs">
                             <span class="font-semibold text-slate-700">5. 他者尊重</span>
-                            <span id="val_c5" class="font-bold text-blue-600">3点</span>
+                            <span id="val_c5" class="font-bold text-rose-600">3点</span>
                         </div>
-                        <input type="range" id="score_c5" min="1" max="5" value="3" oninput="updateScoreDisplay('c5')" class="w-full accent-blue-600">
+                        <input type="range" id="score_c5" min="1" max="5" value="3" oninput="updateScoreDisplay('c5')" class="w-full accent-rose-600">
                     </div>
                 </div>
 
@@ -288,7 +288,12 @@
     </div>
 
     <script>
-        // Default Students Data (30 Students)
+        // ================================================================
+        // 🌟 GOOGLE APPS SCRIPT WEB APP URL CONFIGURATION
+        // ================================================================
+        const GAS_URL = "https://script.google.com/a/macros/g.softbank.co.jp/s/AKfycbxMo5QyHdKAhgfjtgHvWSPPfOTlL0NEsy4CdA850XIPYdnEZwmrwgDeErUPcTaDzp51/exec";
+
+        // Updated Default Students Data (30 Students - 唯木 瞬 削除済み)
         const DEFAULT_STUDENTS = [
             // Aチーム (6名)
             { id: "s1", name: "洪 克樹", group: "Aチーム", kana: "ホン カツキ" },
@@ -304,7 +309,7 @@
             { id: "s10", name: "堀田 壮真", group: "Bチーム", kana: "ホッタ ソウマ" },
             { id: "s11", name: "坂本 愛緒", group: "Bチーム", kana: "サカモト アオ" },
             { id: "s12", name: "神田 結生", group: "Bチーム", kana: "カンダ ユウ" },
-            // Cチーム (5名 - 唯木 瞬 除外済み)
+            // Cチーム (5名)
             { id: "s13", name: "岩﨑 美怜", group: "Cチーム", kana: "イワサキ ミレイ" },
             { id: "s14", name: "飯塚 成大", group: "Cチーム", kana: "イイヅカ セイダイ" },
             { id: "s15", name: "西松 和郎", group: "Cチーム", kana: "ニシマツ カオ" },
@@ -327,58 +332,107 @@
             { id: "s31", name: "米田 遥希", group: "Eチーム", kana: "ヨネダ ハルキ" }
         ];
 
-        // Storage Keys
-        const STORAGE_STUDENTS = 'turetech_students_v11';
-        const STORAGE_EVALS = 'turetech_evals_v11';
+        // Storage Keys & State
+        const STORAGE_EVALS = 'turetech_evals_v14';
         const STORAGE_EVALUATOR_ROLE = 'turetech_evaluator_role';
         const STORAGE_EVALUATOR_NAME = 'turetech_evaluator_name';
 
-        // State Variables
-        let students = [];
+        let students = [...DEFAULT_STUDENTS];
         let evaluations = [];
         let selectedTeamFilter = 'ALL';
         let currentStudentForModal = null;
+        let editingEvalId = null;
         let currentEvaluatorRole = 'メンター';
+        let currentKarteStudentId = null;
 
-        // Chart Instances
         let analyticsChartInstance = null;
         let karteChartInstance = null;
 
         // Initialization
-        window.addEventListener('DOMContentLoaded', () => {
-            loadLocalData();
+        window.addEventListener('DOMContentLoaded', async () => {
             renderTeamFilterButtons();
-            renderStudents();
             populateStudentDropdowns();
             
-            // Restore Evaluator name/role
+            // Restore Evaluator Role & Name
             const savedRole = localStorage.getItem(STORAGE_EVALUATOR_ROLE);
             if (savedRole) setEvaluatorRole(savedRole);
             const savedName = localStorage.getItem(STORAGE_EVALUATOR_NAME);
             if (savedName) document.getElementById('evaluatorNameInput').value = savedName;
+
+            loadLocalData();
+            refreshAllViews();
+
+            // Fetch from Google Sheet Cloud Sync
+            await fetchCloudData();
         });
 
-        // Load / Save Functions
-        function loadLocalData() {
-            const savedStudents = localStorage.getItem(STORAGE_STUDENTS);
-            if (savedStudents) {
-                try { students = JSON.parse(savedStudents); } catch (e) { students = [...DEFAULT_STUDENTS]; }
+        function updateSyncBadge(statusType, text) {
+            const badge = document.getElementById('syncStatus');
+            if (statusType === 'success') {
+                badge.className = "inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-emerald-500/20 text-emerald-300 border border-emerald-500/30";
+                badge.innerHTML = `<span class="w-2 h-2 mr-1.5 bg-emerald-400 rounded-full animate-pulse"></span> ${text}`;
+            } else if (statusType === 'loading') {
+                badge.className = "inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-amber-500/20 text-amber-300 border border-amber-500/30";
+                badge.innerHTML = `<span class="w-2 h-2 mr-1.5 bg-amber-400 rounded-full animate-pulse"></span> ${text}`;
             } else {
-                students = [...DEFAULT_STUDENTS];
-                localStorage.setItem(STORAGE_STUDENTS, JSON.stringify(students));
-            }
-
-            const savedEvals = localStorage.getItem(STORAGE_EVALS);
-            if (savedEvals) {
-                try { evaluations = JSON.parse(savedEvals); } catch (e) { evaluations = []; }
-            } else {
-                evaluations = [];
+                badge.className = "inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-slate-500/20 text-slate-300 border border-slate-500/30";
+                badge.innerHTML = `<i class="fa-solid fa-hard-drive mr-1 text-slate-400"></i> ${text}`;
             }
         }
 
-        function saveData() {
-            localStorage.setItem(STORAGE_STUDENTS, JSON.stringify(students));
+        function loadLocalData() {
+            const savedEvals = localStorage.getItem(STORAGE_EVALS);
+            if (savedEvals) {
+                try { evaluations = JSON.parse(savedEvals); } catch (e) { evaluations = []; }
+            }
+        }
+
+        async function fetchCloudData() {
+            updateSyncBadge('loading', 'スプレッドシートよりデータ取得中...');
+            try {
+                const res = await fetch(GAS_URL);
+                const cloudData = await res.json();
+                if (Array.isArray(cloudData)) {
+                    evaluations = cloudData;
+                    localStorage.setItem(STORAGE_EVALS, JSON.stringify(evaluations));
+                    updateSyncBadge('success', '🟢 スプレッドシート連動中');
+                    refreshAllViews();
+                }
+            } catch (e) {
+                console.warn('Cloud fetch failed, using local storage:', e);
+                updateSyncBadge('local', 'ローカル保存モード (非接続)');
+            }
+        }
+
+        async function saveData() {
+            // LocalStorage Save
             localStorage.setItem(STORAGE_EVALS, JSON.stringify(evaluations));
+
+            // Sync to Google Sheet
+            updateSyncBadge('loading', 'クラウド送信中...');
+            try {
+                await fetch(GAS_URL, {
+                    method: 'POST',
+                    mode: 'no-cors',
+                    headers: { 'Content-Type': 'text/plain' },
+                    body: JSON.stringify(evaluations)
+                });
+                updateSyncBadge('success', '🟢 スプレッドシート同期済み');
+            } catch (e) {
+                console.error('GAS POST Error:', e);
+                updateSyncBadge('local', '⚠️ クラウド送信エラー（ローカル保存完了）');
+            }
+        }
+
+        function refreshAllViews() {
+            renderStudents();
+            if (!document.getElementById('view-analytics').classList.contains('hidden')) {
+                renderIndividualTrendChart();
+                renderHistoryTable();
+            }
+            if (currentKarteStudentId && !document.getElementById('karteModal').classList.contains('hidden')) {
+                openKarteModal(currentKarteStudentId);
+            }
         }
 
         // Tab Switching Logic
@@ -474,29 +528,51 @@
             }).join('');
         }
 
-        // Modal Form Controls & Validation
-        function openEvalModal(studentId) {
+        // Open Evaluation Modal
+        function openEvalModal(studentId, evalId = null) {
             currentStudentForModal = students.find(s => s.id === studentId);
             if (!currentStudentForModal) return;
 
+            editingEvalId = evalId;
+
             document.getElementById('modalTeamBadge').textContent = currentStudentForModal.group;
-            document.getElementById('modalStudentName').textContent = currentStudentForModal.name;
 
-            // Reset scores
-            ['c1', 'c2', 'c3', 'c4', 'c5'].forEach(c => {
-                document.getElementById(`score_${c}`).value = 3;
-                document.getElementById(`val_${c}`).textContent = '3点';
-            });
+            if (editingEvalId) {
+                // Edit Mode
+                const existing = evaluations.find(e => e.id === evalId);
+                if (!existing) return;
 
-            document.getElementById('commentInput').value = '';
+                document.getElementById('modalStudentName').textContent = `${currentStudentForModal.name} (評価編集)`;
+                setEvaluatorRole(existing.evaluatorRole || 'メンター');
+                document.getElementById('evaluatorNameInput').value = existing.evaluatorName || '';
+
+                ['c1', 'c2', 'c3', 'c4', 'c5'].forEach(c => {
+                    const scoreVal = existing.scores[c] || 3;
+                    document.getElementById(`score_${c}`).value = scoreVal;
+                    document.getElementById(`val_${c}`).textContent = `${scoreVal}点`;
+                });
+
+                document.getElementById('commentInput').value = existing.comment || '';
+            } else {
+                // New Mode
+                document.getElementById('modalStudentName').textContent = currentStudentForModal.name;
+
+                ['c1', 'c2', 'c3', 'c4', 'c5'].forEach(c => {
+                    document.getElementById(`score_${c}`).value = 3;
+                    document.getElementById(`val_${c}`).textContent = '3点';
+                });
+
+                document.getElementById('commentInput').value = '';
+            }
+
             validateModalForm();
-
             document.getElementById('evalModal').classList.remove('hidden');
         }
 
         function closeEvalModal() {
             document.getElementById('evalModal').classList.add('hidden');
             currentStudentForModal = null;
+            editingEvalId = null;
         }
 
         function setEvaluatorRole(role) {
@@ -532,7 +608,8 @@
             }
         }
 
-        function saveEvaluation() {
+        // Save Evaluation Record
+        async function saveEvaluation() {
             if (!currentStudentForModal) return;
 
             const evalName = document.getElementById('evaluatorNameInput').value.trim();
@@ -542,44 +619,51 @@
 
             localStorage.setItem(STORAGE_EVALUATOR_NAME, evalName);
 
-            const record = {
-                id: 'eval_' + Date.now(),
-                studentId: currentStudentForModal.id,
-                studentName: currentStudentForModal.name,
-                group: currentStudentForModal.group,
-                evaluatorRole: currentEvaluatorRole,
-                evaluatorName: evalName,
-                timestamp: new Date().toISOString(),
-                scores: {
-                    c1: parseInt(document.getElementById('score_c1').value, 10),
-                    c2: parseInt(document.getElementById('score_c2').value, 10),
-                    c3: parseInt(document.getElementById('score_c3').value, 10),
-                    c4: parseInt(document.getElementById('score_c4').value, 10),
-                    c5: parseInt(document.getElementById('score_c5').value, 10)
-                },
-                comment: comment
+            const scoresObj = {
+                c1: parseInt(document.getElementById('score_c1').value, 10),
+                c2: parseInt(document.getElementById('score_c2').value, 10),
+                c3: parseInt(document.getElementById('score_c3').value, 10),
+                c4: parseInt(document.getElementById('score_c4').value, 10),
+                c5: parseInt(document.getElementById('score_c5').value, 10)
             };
 
-            evaluations.push(record);
-            saveData();
-            closeEvalModal();
-            renderStudents();
-            populateStudentDropdowns();
+            if (editingEvalId) {
+                const idx = evaluations.findIndex(e => e.id === editingEvalId);
+                if (idx !== -1) {
+                    evaluations[idx].evaluatorRole = currentEvaluatorRole;
+                    evaluations[idx].evaluatorName = evalName;
+                    evaluations[idx].scores = scoresObj;
+                    evaluations[idx].comment = comment;
+                    evaluations[idx].timestamp = new Date().toISOString();
+                }
+            } else {
+                const record = {
+                    id: 'eval_' + Date.now() + '_' + Math.random().toString(36).substr(2, 4),
+                    studentId: currentStudentForModal.id,
+                    studentName: currentStudentForModal.name,
+                    group: currentStudentForModal.group,
+                    evaluatorRole: currentEvaluatorRole,
+                    evaluatorName: evalName,
+                    timestamp: new Date().toISOString(),
+                    scores: scoresObj,
+                    comment: comment
+                };
+                evaluations.push(record);
+            }
 
-            // Flash success state
-            const syncStatus = document.getElementById('syncStatus');
-            syncStatus.className = "inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-blue-500/30 text-white border border-blue-400";
-            syncStatus.innerHTML = `<i class="fa-solid fa-check mr-1 text-emerald-400"></i> 保存完了`;
-            setTimeout(() => {
-                syncStatus.className = "inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-emerald-500/20 text-emerald-300 border border-emerald-500/30";
-                syncStatus.innerHTML = `<span class="w-2 h-2 mr-1.5 bg-emerald-400 rounded-full animate-pulse"></span> データ保存中`;
-            }, 2000);
+            closeEvalModal();
+            refreshAllViews();
+            await saveData();
         }
 
-        // Student Dropdowns Setup
+        // Student Select Dropdown Population
         function populateStudentDropdowns() {
             const select = document.getElementById('analyticsStudentSelect');
+            const currentVal = select.value;
             select.innerHTML = students.map(s => `<option value="${s.id}">${s.group} - ${s.name}</option>`).join('');
+            if (currentVal && students.some(s => s.id === currentVal)) {
+                select.value = currentVal;
+            }
         }
 
         // Render 5-Item Line Chart for Selected Student
@@ -597,48 +681,17 @@
                 analyticsChartInstance.destroy();
             }
 
-            const labels = studentEvals.map((e, idx) => {
+            const labels = studentEvals.map(e => {
                 const d = new Date(e.timestamp);
                 return `${d.getMonth() + 1}/${d.getDate()} ${d.getHours()}:${String(d.getMinutes()).padStart(2, '0')} (${e.evaluatorName})`;
             });
 
-            // 5 Criteria Datasets
             const datasets = [
-                {
-                    label: '1. 論点整理・前提理解',
-                    data: studentEvals.map(e => e.scores.c1),
-                    borderColor: '#2563eb', // Blue
-                    backgroundColor: '#2563eb',
-                    tension: 0.2
-                },
-                {
-                    label: '2. 課題特定',
-                    data: studentEvals.map(e => e.scores.c2),
-                    borderColor: '#059669', // Emerald Green
-                    backgroundColor: '#059669',
-                    tension: 0.2
-                },
-                {
-                    label: '3. 根拠・論拠の明確さ',
-                    data: studentEvals.map(e => e.scores.c3),
-                    borderColor: '#d97706', // Amber/Yellow
-                    backgroundColor: '#d97706',
-                    tension: 0.2
-                },
-                {
-                    label: '4. 巻き込み・合意形成',
-                    data: studentEvals.map(e => e.scores.c4),
-                    borderColor: '#7c3aed', // Purple
-                    backgroundColor: '#7c3aed',
-                    tension: 0.2
-                },
-                {
-                    label: '5. 他者尊重',
-                    data: studentEvals.map(e => e.scores.c5),
-                    borderColor: '#e11d48', // Rose Red
-                    backgroundColor: '#e11d48',
-                    tension: 0.2
-                }
+                { label: '1. 論点整理', data: studentEvals.map(e => e.scores.c1), borderColor: '#2563eb', backgroundColor: '#2563eb', tension: 0.2 },
+                { label: '2. 課題特定', data: studentEvals.map(e => e.scores.c2), borderColor: '#059669', backgroundColor: '#059669', tension: 0.2 },
+                { label: '3. 根拠明確さ', data: studentEvals.map(e => e.scores.c3), borderColor: '#d97706', backgroundColor: '#d97706', tension: 0.2 },
+                { label: '4. 巻き込み', data: studentEvals.map(e => e.scores.c4), borderColor: '#7c3aed', backgroundColor: '#7c3aed', tension: 0.2 },
+                { label: '5. 他者尊重', data: studentEvals.map(e => e.scores.c5), borderColor: '#e11d48', backgroundColor: '#e11d48', tension: 0.2 }
             ];
 
             analyticsChartInstance = new Chart(ctx, {
@@ -647,18 +700,15 @@
                 options: {
                     responsive: true,
                     maintainAspectRatio: false,
-                    scales: {
-                        y: { min: 1, max: 5, ticks: { stepSize: 1 } }
-                    },
-                    plugins: {
-                        legend: { position: 'top', labels: { boxWidth: 12, font: { size: 10 } } }
-                    }
+                    scales: { y: { min: 1, max: 5, ticks: { stepSize: 1 } } },
+                    plugins: { legend: { position: 'top', labels: { boxWidth: 12, font: { size: 10 } } } }
                 }
             });
         }
 
         // Render Individual Karte Modal
         function openKarteModal(studentId) {
+            currentKarteStudentId = studentId;
             const student = students.find(s => s.id === studentId);
             if (!student) return;
 
@@ -669,13 +719,12 @@
                 .filter(e => e.studentId === studentId)
                 .sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
 
-            // Render Karte Chart
             const ctx = document.getElementById('karteTrendChart').getContext('2d');
             if (karteChartInstance) {
                 karteChartInstance.destroy();
             }
 
-            const labels = studentEvals.map((e, idx) => {
+            const labels = studentEvals.map(e => {
                 const d = new Date(e.timestamp);
                 return `${d.getMonth() + 1}/${d.getDate()} ${d.getHours()}:${String(d.getMinutes()).padStart(2, '0')}`;
             });
@@ -700,7 +749,6 @@
                 }
             });
 
-            // History Cards
             const historyList = document.getElementById('karteHistoryList');
             if (studentEvals.length === 0) {
                 historyList.innerHTML = `<p class="text-xs text-slate-400 py-4 text-center">まだ入力履歴がありません</p>`;
@@ -709,9 +757,17 @@
                     const dateStr = new Date(e.timestamp).toLocaleString('ja-JP');
                     return `
                         <div class="bg-slate-50 p-3 rounded-lg border border-slate-200 text-xs space-y-2">
-                            <div class="flex justify-between text-slate-500 font-medium">
+                            <div class="flex justify-between items-center text-slate-500 font-medium">
                                 <span><i class="fa-solid fa-user-pen mr-1"></i>[${e.evaluatorRole}] ${e.evaluatorName}</span>
-                                <span>${dateStr}</span>
+                                <div class="flex items-center space-x-2">
+                                    <span>${dateStr}</span>
+                                    <button onclick="openEvalModal('${e.studentId}', '${e.id}')" class="text-blue-600 hover:text-blue-800 p-1" title="この評価を編集">
+                                        <i class="fa-solid fa-pen"></i>
+                                    </button>
+                                    <button onclick="deleteSingleEval('${e.id}')" class="text-rose-500 hover:text-rose-700 p-1" title="削除">
+                                        <i class="fa-solid fa-trash-can"></i>
+                                    </button>
+                                </div>
                             </div>
                             <div class="flex space-x-2 text-[10px] font-bold">
                                 <span class="bg-blue-100 text-blue-800 px-1.5 py-0.5 rounded">論点:${e.scores.c1}</span>
@@ -731,9 +787,10 @@
 
         function closeKarteModal() {
             document.getElementById('karteModal').classList.add('hidden');
+            currentKarteStudentId = null;
         }
 
-        // History Log Table Render
+        // Render Evaluation Log History Table
         function renderHistoryTable() {
             const tbody = document.getElementById('historyTableBody');
             document.getElementById('logCountBadge').textContent = `${evaluations.length}件`;
@@ -759,8 +816,11 @@
                         <td class="p-3 text-center font-bold text-purple-600">${e.scores.c4}</td>
                         <td class="p-3 text-center font-bold text-rose-600">${e.scores.c5}</td>
                         <td class="p-3 max-w-xs truncate text-slate-600" title="${e.comment}">${e.comment}</td>
-                        <td class="p-3 text-center">
-                            <button onclick="deleteSingleEval('${e.id}')" class="text-rose-500 hover:text-rose-700 p-1">
+                        <td class="p-3 text-center space-x-1">
+                            <button onclick="openEvalModal('${e.studentId}', '${e.id}')" class="text-blue-600 hover:text-blue-800 p-1" title="編集">
+                                <i class="fa-solid fa-pen"></i>
+                            </button>
+                            <button onclick="deleteSingleEval('${e.id}')" class="text-rose-500 hover:text-rose-700 p-1" title="削除">
                                 <i class="fa-solid fa-trash-can"></i>
                             </button>
                         </td>
@@ -769,22 +829,19 @@
             }).join('');
         }
 
-        function deleteSingleEval(id) {
+        async function deleteSingleEval(id) {
             evaluations = evaluations.filter(e => e.id !== id);
-            saveData();
-            renderStudents();
-            renderHistoryTable();
-            renderIndividualTrendChart();
+            refreshAllViews();
+            await saveData();
         }
 
-        // Export to Excel (.xlsx)
+        // Export Evaluation Logs & Summary to Excel (.xlsx)
         function exportToExcel() {
             if (evaluations.length === 0) {
                 alert('出力する評価データがまだありません。');
                 return;
             }
 
-            // Sheet 1: 全評価ログ
             const logData = evaluations.map(e => ({
                 '日時': new Date(e.timestamp).toLocaleString('ja-JP'),
                 'チーム': e.group,
@@ -799,7 +856,6 @@
                 '所感メモ': e.comment
             }));
 
-            // Sheet 2: 学生別サマリー
             const summaryData = students.map(s => {
                 const sEvals = evaluations.filter(e => e.studentId === s.id);
                 const count = sEvals.length;
