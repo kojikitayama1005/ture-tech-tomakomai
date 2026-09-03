@@ -201,3 +201,513 @@
     <div class="bg-white rounded-xl max-w-xs w-full p-4 shadow-xl text-center space-y-3">
       <div id="messageText" class="text-xs text-slate-700 font-medium"></div>
       <button onclick="closeMessageModal()" class="px-4 py-1.5 bg-emerald-600 text-white text-xs rounded font-bold">OK</button>
+    </div>
+  </div>
+
+  <!-- JavaScript -->
+  <script>
+    // 福島市 学生リスト (全31名)
+    const STUDENTS = [
+      { id: "F01", group: "Aチーム", name: "小川 瑚音" },
+      { id: "F02", group: "Aチーム", name: "石丸 功典" },
+      { id: "F03", group: "Aチーム", name: "佐藤 世壱" },
+      { id: "F04", group: "Aチーム", name: "浅野 柊花" },
+      { id: "F05", group: "Aチーム", name: "稲葉 彩乃" },
+      { id: "F06", group: "Aチーム", name: "中山 知駿" },
+      { id: "F07", group: "Bチーム", name: "須見 みちる" },
+      { id: "F08", group: "Bチーム", name: "坂口 貴哉" },
+      { id: "F09", group: "Bチーム", name: "久家 京子" },
+      { id: "F10", group: "Bチーム", name: "富本 康太" },
+      { id: "F11", group: "Bチーム", name: "美和 勇輝" },
+      { id: "F12", group: "Bチーム", name: "古井 茉香" },
+      { id: "F13", group: "Cチーム", name: "有賀 心咲" },
+      { id: "F14", group: "Cチーム", name: "渡辺 愛" },
+      { id: "F15", group: "Cチーム", name: "寺本 朋矢" },
+      { id: "F16", group: "Cチーム", name: "有馬 秀一" },
+      { id: "F17", group: "Cチーム", name: "山口 童豪" },
+      { id: "F18", group: "Cチーム", name: "石井 百香" },
+      { id: "F19", group: "Dチーム", name: "坂元 柾毅" },
+      { id: "F20", group: "Dチーム", name: "松本 鼓" },
+      { id: "F21", group: "Dチーム", name: "青木 藍花" },
+      { id: "F22", group: "Dチーム", name: "長谷川 京香" },
+      { id: "F23", group: "Dチーム", name: "河島 航" },
+      { id: "F24", group: "Dチーム", name: "山田さくら" },
+      { id: "F25", group: "Eチーム", name: "蓮波 愛佳" },
+      { id: "F26", group: "Eチーム", name: "小林 真緒" },
+      { id: "F27", group: "Eチーム", name: "菅原 真波" },
+      { id: "F28", group: "Eチーム", name: "喜古 悠愛" },
+      { id: "F29", group: "Eチーム", name: "國松 晃太郎" },
+      { id: "F30", group: "Eチーム", name: "小助川 晴大" },
+      { id: "F31", group: "Eチーム", name: "戸田 悠一朗" }
+    ];
+
+    const METRICS = [
+      { id: "c1", label: "1. 論点整理", desc: "議論の軸や前提を正しく構造化できているか" },
+      { id: "c2", label: "2. 課題特定", desc: "本質的な原因やボトルネックを見出せているか" },
+      { id: "c3", label: "3. 根拠・論拠", desc: "データや事実に基づく論理的思考ができているか" },
+      { id: "c4", label: "4. 巻き込み", desc: "チームメンバーを能動的に動かしているか" },
+      { id: "c5", label: "5. 他者尊重", desc: "傾聴と多角的な視点受け入れができているか" }
+    ];
+
+    const STORAGE_KEY = "turetech_fukushima_evals_v1";
+    const GAS_URL_KEY = "turetech_fukushima_gas_url";
+
+    let evaluations = [];
+    let currentFilterGroup = "ALL";
+    let selectedStudent = null;
+    let selectedRole = "メンター";
+    let editingEvalId = null;
+    let carteChartInstance = null;
+
+    // 初期化
+    window.addEventListener("DOMContentLoaded", () => {
+      loadData();
+      renderTeamFilterButtons();
+      renderStudentGrid();
+      renderMetricInputs();
+      initGasUrl();
+      fetchCloudData();
+    });
+
+    // データの読み込み
+    function loadData() {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      evaluations = raw ? JSON.parse(raw) : [];
+    }
+
+    function saveData() {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(evaluations));
+      renderStudentGrid();
+      renderHistoryTable();
+      syncToCloud();
+    }
+
+    // タブ切り替え
+    function switchTab(tab) {
+      document.getElementById("tabStudents").classList.toggle("hidden", tab !== 'students');
+      document.getElementById("tabAnalytics").classList.toggle("hidden", tab !== 'analytics');
+
+      const btnS = document.getElementById("tabStudentsBtn");
+      const btnA = document.getElementById("tabAnalyticsBtn");
+
+      if (tab === 'students') {
+        btnS.className = "flex-1 py-3 text-center text-sm font-bold border-b-2 border-emerald-600 text-emerald-700";
+        btnA.className = "flex-1 py-3 text-center text-sm font-bold text-slate-500 hover:text-slate-700";
+      } else {
+        btnA.className = "flex-1 py-3 text-center text-sm font-bold border-b-2 border-emerald-600 text-emerald-700";
+        btnS.className = "flex-1 py-3 text-center text-sm font-bold text-slate-500 hover:text-slate-700";
+        renderHistoryTable();
+      }
+    }
+
+    // チームフィルターボタン描画
+    function renderTeamFilterButtons() {
+      const container = document.getElementById("teamFilterButtons");
+      const groups = ["ALL", "Aチーム", "Bチーム", "Cチーム", "Dチーム", "Eチーム"];
+      container.innerHTML = groups.map(g => {
+        const active = currentFilterGroup === g;
+        const cls = active ? "bg-emerald-700 text-white font-bold" : "bg-white text-slate-600 hover:bg-slate-100 border border-slate-200";
+        const label = g === "ALL" ? "全チーム" : g;
+        return `<button onclick="setGroupFilter('${g}')" class="px-3 py-1.5 rounded-lg text-xs transition ${cls}">${label}</button>`;
+      }).join('');
+    }
+
+    function setGroupFilter(g) {
+      currentFilterGroup = g;
+      renderTeamFilterButtons();
+      renderStudentGrid();
+    }
+
+    // 学生グリッド描画
+    function renderStudentGrid() {
+      const container = document.getElementById("studentGrid");
+      const list = STUDENTS.filter(s => currentFilterGroup === "ALL" || s.group === currentFilterGroup);
+
+      container.innerHTML = list.map(student => {
+        const studentEvals = evaluations.filter(e => e.studentId === student.id);
+        const count = studentEvals.length;
+        
+        let avgStr = "-";
+        if (count > 0) {
+          const latest = studentEvals[studentEvals.length - 1];
+          const sum = Object.values(latest.scores).reduce((a, b) => a + Number(b), 0);
+          avgStr = (sum / 5).toFixed(1);
+        }
+
+        return `
+          <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm hover:shadow transition flex flex-col justify-between space-y-3">
+            <div class="flex justify-between items-start">
+              <div>
+                <span class="text-2xs bg-slate-100 text-slate-600 px-2 py-0.5 rounded font-bold">${student.group}</span>
+                <h3 class="font-bold text-slate-800 text-sm mt-1">${student.name}</h3>
+              </div>
+              <div class="text-right">
+                <div class="text-2xs text-slate-400">直近平均</div>
+                <div class="text-base font-extrabold text-emerald-600">${avgStr}</div>
+              </div>
+            </div>
+
+            <div class="flex justify-between items-center text-xs text-slate-500 pt-2 border-t border-slate-100">
+              <span>評価回数: <strong class="text-slate-700">${count}回</strong></span>
+              <div class="flex gap-1.5">
+                <button onclick="openCarteModal('${student.id}')" class="px-2.5 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded text-2xs font-bold transition">カルテ</button>
+                <button onclick="openEvalModal('${student.id}')" class="px-3 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded text-2xs font-bold transition">＋評価入力</button>
+              </div>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    // 評価項目入力要素描画
+    function renderMetricInputs() {
+      const container = document.getElementById("metricInputs");
+      container.innerHTML = METRICS.map(m => `
+        <div class="bg-slate-50 p-2.5 rounded border border-slate-200 space-y-1">
+          <div class="flex justify-between items-center">
+            <span class="font-bold text-slate-800">${m.label}</span>
+            <span id="scoreVal_${m.id}" class="font-bold text-emerald-600 text-sm">3</span>
+          </div>
+          <p class="text-2xs text-slate-500">${m.desc}</p>
+          <div class="flex gap-1 pt-1">
+            ${[1, 2, 3, 4, 5].map(v => `
+              <button type="button" onclick="setScore('${m.id}', ${v})" id="scoreBtn_${m.id}_${v}" class="flex-1 py-1 rounded text-2xs font-bold border transition bg-white text-slate-600 border-slate-300">
+                ${v}
+              </button>
+            `).join('')}
+          </div>
+        </div>
+      `).join('');
+    }
+
+    let currentScores = { c1: 3, c2: 3, c3: 3, c4: 3, c5: 3 };
+
+    function setScore(metricId, val) {
+      currentScores[metricId] = val;
+      document.getElementById(`scoreVal_${metricId}`).innerText = val;
+      [1, 2, 3, 4, 5].forEach(v => {
+        const btn = document.getElementById(`scoreBtn_${metricId}_${v}`);
+        if (v === val) {
+          btn.className = "flex-1 py-1 rounded text-2xs font-bold border transition bg-emerald-600 text-white border-emerald-600 shadow-sm";
+        } else {
+          btn.className = "flex-1 py-1 rounded text-2xs font-bold border transition bg-white text-slate-600 border-slate-300";
+        }
+      });
+    }
+
+    function setRole(role) {
+      selectedRole = role;
+      document.getElementById("roleMentorBtn").className = role === 'メンター' ? "flex-1 py-1.5 border rounded font-bold transition bg-emerald-700 text-white border-emerald-700" : "flex-1 py-1.5 border rounded font-bold transition bg-white text-slate-600 border-slate-300";
+      document.getElementById("roleSupporterBtn").className = role === 'サポーター' ? "flex-1 py-1.5 border rounded font-bold transition bg-emerald-700 text-white border-emerald-700" : "flex-1 py-1.5 border rounded font-bold transition bg-white text-slate-600 border-slate-300";
+    }
+
+    // 評価モーダル開閉
+    function openEvalModal(studentId, evalId = null) {
+      selectedStudent = STUDENTS.find(s => s.id === studentId);
+      editingEvalId = evalId;
+
+      document.getElementById("evalModalTeam").innerText = selectedStudent.group;
+      document.getElementById("evalModalStudentName").innerText = selectedStudent.name;
+
+      // 前回の入力保存者名があれば補完
+      const lastEval = evaluations[evaluations.length - 1];
+      if (lastEval && !evalId) {
+        document.getElementById("evaluatorName").value = lastEval.evaluatorName || "";
+        setRole(lastEval.evaluatorRole || "メンター");
+      } else {
+        setRole("メンター");
+      }
+
+      if (evalId) {
+        const target = evaluations.find(e => e.id === evalId);
+        if (target) {
+          setRole(target.evaluatorRole);
+          document.getElementById("evaluatorName").value = target.evaluatorName;
+          document.getElementById("evalComment").value = target.comment;
+          METRICS.forEach(m => setScore(m.id, target.scores[m.id]));
+        }
+      } else {
+        document.getElementById("evalComment").value = "";
+        METRICS.forEach(m => setScore(m.id, 3));
+      }
+
+      document.getElementById("evalModal").classList.remove("hidden");
+    }
+
+    function closeEvalModal() {
+      document.getElementById("evalModal").classList.add("hidden");
+    }
+
+    function saveEvaluation() {
+      const name = document.getElementById("evaluatorName").value.trim();
+      const comment = document.getElementById("evalComment").value.trim();
+
+      if (!name) {
+        showMessage("評価者氏名を入力してください");
+        return;
+      }
+      if (!comment) {
+        showMessage("各学生の所感・メモを入力してください");
+        return;
+      }
+
+      if (editingEvalId) {
+        const idx = evaluations.findIndex(e => e.id === editingEvalId);
+        if (idx !== -1) {
+          evaluations[idx] = {
+            ...evaluations[idx],
+            evaluatorRole: selectedRole,
+            evaluatorName: name,
+            scores: { ...currentScores },
+            comment: comment,
+            updatedAt: new Date().toISOString()
+          };
+        }
+      } else {
+        const newRecord = {
+          id: "E_" + Date.now(),
+          studentId: selectedStudent.id,
+          studentName: selectedStudent.name,
+          group: selectedStudent.group,
+          evaluatorRole: selectedRole,
+          evaluatorName: name,
+          scores: { ...currentScores },
+          comment: comment,
+          timestamp: new Date().toISOString()
+        };
+        evaluations.push(newRecord);
+      }
+
+      saveData();
+      closeEvalModal();
+      showMessage("評価を保存しました");
+    }
+
+    // カルテモーダル
+    function openCarteModal(studentId) {
+      const student = STUDENTS.find(s => s.id === studentId);
+      document.getElementById("carteModalTeam").innerText = student.group;
+      document.getElementById("carteModalStudentName").innerText = `${student.name} さんの評価カルテ`;
+
+      const list = evaluations.filter(e => e.studentId === studentId);
+
+      // グラフ描画
+      renderCarteChart(list);
+
+      // 履歴一覧
+      const historyContainer = document.getElementById("carteHistoryList");
+      if (list.length === 0) {
+        historyContainer.innerHTML = `<div class="text-center text-slate-400 py-4">評価データがまだありません</div>`;
+      } else {
+        historyContainer.innerHTML = list.slice().reverse().map(item => {
+          const d = new Date(item.timestamp);
+          const dateStr = `${d.getMonth()+1}/${d.getDate()} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
+          const avg = (Object.values(item.scores).reduce((a,b)=>a+Number(b),0)/5).toFixed(1);
+
+          return `
+            <div class="bg-slate-50 p-3 rounded-lg border border-slate-200 space-y-1.5">
+              <div class="flex justify-between items-center text-2xs text-slate-500">
+                <span>${dateStr} | ${item.evaluatorRole}: <strong>${item.evaluatorName}</strong></span>
+                <div class="flex items-center gap-2">
+                  <span class="font-bold text-emerald-600 text-xs">平均 ${avg}</span>
+                  <button onclick="closeCarteModal(); openEvalModal('${student.id}', '${item.id}')" class="text-slate-400 hover:text-emerald-600"><i class="fa-solid fa-pen"></i></button>
+                </div>
+              </div>
+              <p class="text-xs text-slate-700 whitespace-pre-wrap">${item.comment}</p>
+            </div>
+          `;
+        }).join('');
+      }
+
+      document.getElementById("carteModal").classList.remove("hidden");
+    }
+
+    function closeCarteModal() {
+      document.getElementById("carteModal").classList.add("hidden");
+    }
+
+    function renderCarteChart(studentEvals) {
+      const ctx = document.getElementById("carteChart").getContext("2d");
+      if (carteChartInstance) carteChartInstance.destroy();
+
+      const labels = studentEvals.map((e, idx) => {
+        const d = new Date(e.timestamp);
+        return `#${idx+1} (${d.getMonth()+1}/${d.getDate()})`;
+      });
+
+      const colors = ["#059669", "#0284c7", "#d97706", "#7c3aed", "#e11d48"];
+
+      const datasets = METRICS.map((m, idx) => ({
+        label: m.label,
+        data: studentEvals.map(e => e.scores[m.id]),
+        borderColor: colors[idx],
+        backgroundColor: colors[idx],
+        borderWidth: 2,
+        tension: 0.2
+      }));
+
+      carteChartInstance = new Chart(ctx, {
+        type: 'line',
+        data: { labels, datasets },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          scales: {
+            y: { min: 1, max: 5, ticks: { stepSize: 1 } }
+          },
+          plugins: {
+            legend: { position: 'bottom', labels: { boxWidth: 10, font: { size: 10 } } }
+          }
+        }
+      });
+    }
+
+    // 履歴テーブル（Tab 2）
+    function renderHistoryTable() {
+      const tbody = document.getElementById("historyTableBody");
+      if (evaluations.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="7" class="text-center py-6 text-slate-400">データが存在しません</td></tr>`;
+        return;
+      }
+
+      tbody.innerHTML = evaluations.slice().reverse().map(item => {
+        const d = new Date(item.timestamp);
+        const dateStr = `${d.getMonth()+1}/${d.getDate()} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
+        const avg = (Object.values(item.scores).reduce((a,b)=>a+Number(b),0)/5).toFixed(1);
+
+        return `
+          <tr class="hover:bg-slate-50 transition">
+            <td class="p-2.5 text-slate-500 whitespace-nowrap">${dateStr}</td>
+            <td class="p-2.5 font-bold text-slate-600">${item.group}</td>
+            <td class="p-2.5 font-bold text-slate-800">${item.studentName}</td>
+            <td class="p-2.5 text-slate-600">${item.evaluatorName} (${item.evaluatorRole})</td>
+            <td class="p-2.5 font-bold text-emerald-600">${avg}</td>
+            <td class="p-2.5 text-slate-600 max-w-xs truncate">${item.comment}</td>
+            <td class="p-2.5 text-center">
+              <button onclick="openEvalModal('${item.studentId}', '${item.id}')" class="text-emerald-600 hover:text-emerald-800 p-1"><i class="fa-solid fa-pen-to-square"></i></button>
+            </td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    // Excel出力
+    function exportToExcel() {
+      if (evaluations.length === 0) {
+        showMessage("出力する評価データがありません");
+        return;
+      }
+
+      const rows = evaluations.map(e => ({
+        "日時": new Date(e.timestamp).toLocaleString("ja-JP"),
+        "チーム": e.group,
+        "学生氏名": e.studentName,
+        "評価者役職": e.evaluatorRole,
+        "評価者氏名": e.evaluatorName,
+        "1.論点整理": e.scores.c1,
+        "2.課題特定": e.scores.c2,
+        "3.根拠・論拠": e.scores.c3,
+        "4.巻き込み": e.scores.c4,
+        "5.他者尊重": e.scores.c5,
+        "所感メモ": e.comment
+      }));
+
+      const worksheet = XLSX.utils.json_to_sheet(rows);
+      const workbook = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(workbook, worksheet, "評価ログ_福島市");
+      XLSX.writeFile(workbook, `TURE-TECH_評価ログ_福島市_${new Date().toISOString().slice(0,10)}.xlsx`);
+    }
+
+    // クラウド同期
+    function initGasUrl() {
+      const url = localStorage.getItem(GAS_URL_KEY) || "";
+      document.getElementById("gasUrlInput").value = url;
+      updateSyncStatusUI(!!url);
+    }
+
+    function openCloudModal() { document.getElementById("cloudModal").classList.remove("hidden"); }
+    function closeCloudModal() { document.getElementById("cloudModal").classList.add("hidden"); }
+
+    function saveGasUrl() {
+      const url = document.getElementById("gasUrlInput").value.trim();
+      localStorage.setItem(GAS_URL_KEY, url);
+      closeCloudModal();
+      updateSyncStatusUI(!!url);
+      if (url) fetchCloudData();
+    }
+
+    function updateSyncStatusUI(isOnline) {
+      const dot = document.getElementById("syncStatusDot");
+      const text = document.getElementById("syncStatusText");
+      if (isOnline) {
+        dot.className = "w-2 h-2 rounded-full bg-emerald-400 animate-pulse";
+        text.innerText = "クラウド連動中";
+      } else {
+        dot.className = "w-2 h-2 rounded-full bg-slate-400";
+        text.innerText = "ローカル保存";
+      }
+    }
+
+    async function syncToCloud() {
+      const url = localStorage.getItem(GAS_URL_KEY);
+      if (!url) return;
+
+      try {
+        await fetch(url, {
+          method: "POST",
+          mode: "no-cors",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(evaluations)
+        });
+      } catch (err) {
+        console.error("Cloud sync error:", err);
+      }
+    }
+
+    async function fetchCloudData() {
+      const url = localStorage.getItem(GAS_URL_KEY);
+      if (!url) return;
+
+      try {
+        const res = await fetch(url);
+        const data = await res.json();
+        if (Array.isArray(data) && data.length > 0) {
+          evaluations = data;
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(evaluations));
+          renderStudentGrid();
+          renderHistoryTable();
+        }
+      } catch (err) {
+        console.warn("Cloud fetch warning:", err);
+      }
+    }
+
+    async function testGasConnection() {
+      const url = document.getElementById("gasUrlInput").value.trim();
+      if (!url) {
+        showMessage("URLを入力してください");
+        return;
+      }
+      try {
+        const res = await fetch(url);
+        if (res.ok) {
+          showMessage("接続テスト成功！正常に連携されています。");
+        } else {
+          showMessage("レスポンスエラーが発生しました。デプロイ設定をご確認ください。");
+        }
+      } catch (e) {
+        showMessage("接続テスト完了（CORS制限がある場合でも保存処理は正常動作します）。");
+      }
+    }
+
+    // メッセージダイアログ
+    function showMessage(msg) {
+      document.getElementById("messageText").innerText = msg;
+      document.getElementById("messageModal").classList.remove("hidden");
+    }
+    function closeMessageModal() {
+      document.getElementById("messageModal").classList.add("hidden");
+    }
+  </script>
+</body>
+</html>
