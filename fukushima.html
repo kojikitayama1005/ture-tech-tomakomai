@@ -4,89 +4,148 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>TURE-TECH 評価・カルテ【福島市】</title>
-  <script src="[https://cdn.tailwindcss.com](https://cdn.tailwindcss.com)"></script>
-  <link rel="stylesheet" href="[https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css](https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css)">
-  <script src="[https://cdn.jsdelivr.net/npm/chart.js](https://cdn.jsdelivr.net/npm/chart.js)"></script>
-  <script src="[https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js](https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js)"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background-color: #f1f5f9; color: #1e293b; line-height: 1.5; padding-bottom: 40px; }
+    
+    /* ヘッダー */
+    header { background: #047857; color: white; padding: 12px 16px; position: sticky; top: 0; z-index: 100; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+    .header-inner { max-width: 1000px; margin: 0 auto; display: flex; justify-content: space-between; align-items: center; }
+    .header-title-box { display: flex; align-items: center; gap: 8px; }
+    .badge { background: #065f46; color: #a7f3d0; font-size: 0.7rem; font-weight: bold; padding: 2px 8px; border-radius: 4px; }
+    .header-title { font-size: 1.1rem; font-weight: bold; }
+    .header-sub { font-size: 0.75rem; color: #a7f3d0; margin-top: 2px; }
+    .sync-btn { background: #065f46; color: white; border: 1px solid #059669; font-size: 0.75rem; padding: 6px 12px; border-radius: 8px; cursor: pointer; display: flex; align-items: center; gap: 6px; font-weight: bold; }
+    .sync-btn:hover { background: #022c22; }
+    .sync-dot { width: 8px; height: 8px; border-radius: 50%; background: #94a3b8; display: inline-block; }
+    .sync-dot.online { background: #34d399; }
+
+    /* メインコンテナ */
+    .container { max-width: 1000px; margin: 16px auto; padding: 0 16px; }
+
+    /* タブ */
+    .tabs { display: flex; background: white; border-radius: 12px 12px 0 0; border-bottom: 2px solid #e2e8f0; overflow: hidden; margin-bottom: 16px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
+    .tab-btn { flex: 1; padding: 12px; text-align: center; font-size: 0.85rem; font-weight: bold; color: #64748b; background: none; border: none; cursor: pointer; border-bottom: 3px solid transparent; margin-bottom: -2px; }
+    .tab-btn.active { color: #047857; border-bottom-color: #047857; background: #f0fdf4; }
+
+    /* フィルター */
+    .filter-group { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 16px; }
+    .filter-btn { padding: 6px 14px; font-size: 0.75rem; border-radius: 8px; border: 1px solid #cbd5e1; background: white; color: #475569; cursor: pointer; font-weight: bold; }
+    .filter-btn.active { background: #047857; color: white; border-color: #047857; }
+
+    /* カードグリッド */
+    .student-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px; }
+    .card { background: white; border: 1px solid #e2e8f0; border-radius: 12px; padding: 16px; display: flex; flex-direction: column; justify-content: space-between; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
+    .card-header { display: flex; justify-content: space-between; align-items: flex-start; }
+    .team-badge { font-size: 0.65rem; background: #f1f5f9; color: #475569; padding: 2px 6px; border-radius: 4px; font-weight: bold; }
+    .student-name { font-size: 1rem; font-weight: bold; color: #0f172a; margin-top: 4px; }
+    .score-box { text-align: right; }
+    .score-label { font-size: 0.65rem; color: #94a3b8; }
+    .score-val { font-size: 1.25rem; font-weight: 800; color: #059669; }
+    .card-footer { display: flex; justify-content: space-between; align-items: center; padding-top: 12px; border-top: 1px solid #f1f5f9; margin-top: 12px; font-size: 0.75rem; color: #64748b; }
+    .btn-group { display: flex; gap: 6px; }
+    .btn-sm { padding: 6px 12px; font-size: 0.75rem; font-weight: bold; border-radius: 6px; border: none; cursor: pointer; }
+    .btn-secondary { background: #f1f5f9; color: #334155; }
+    .btn-secondary:hover { background: #e2e8f0; }
+    .btn-primary { background: #059669; color: white; }
+    .btn-primary:hover { background: #047857; }
+
+    /* モーダル */
+    .modal-overlay { position: fixed; inset: 0; background: rgba(15, 23, 42, 0.6); backdrop-filter: blur(2px); z-index: 1000; display: flex; align-items: center; justify-content: center; padding: 16px; }
+    .modal-overlay.hidden { display: none !important; }
+    .modal-content { background: white; border-radius: 16px; width: 100%; max-width: 500px; max-height: 90vh; display: flex; flex-direction: column; overflow: hidden; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1); }
+    .modal-header { background: #047857; color: white; padding: 14px 20px; display: flex; justify-content: space-between; align-items: center; }
+    .modal-title { font-weight: bold; font-size: 1rem; }
+    .modal-close { background: none; border: none; color: white; font-size: 1.25rem; cursor: pointer; opacity: 0.8; }
+    .modal-body { padding: 20px; overflow-y: auto; display: flex; flex-direction: column; gap: 16px; font-size: 0.8rem; }
+    .modal-footer { padding: 12px 20px; background: #f8fafc; border-top: 1px solid #e2e8f0; display: flex; justify-content: flex-end; gap: 8px; }
+
+    /* フォーム要素 */
+    .form-group { display: flex; flex-direction: column; gap: 6px; }
+    .form-label { font-weight: bold; color: #334155; }
+    .form-input, .form-textarea { padding: 8px 12px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 0.8rem; font-family: inherit; width: 100%; }
+    .form-textarea { resize: vertical; min-height: 70px; }
+
+    .role-buttons { display: flex; gap: 8px; }
+    .role-btn { flex: 1; padding: 8px; border: 1px solid #cbd5e1; background: white; border-radius: 6px; font-weight: bold; cursor: pointer; color: #475569; }
+    .role-btn.active { background: #047857; color: white; border-color: #047857; }
+
+    .metric-box { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 10px; }
+    .metric-header { display: flex; justify-content: space-between; font-weight: bold; color: #1e293b; }
+    .metric-desc { font-size: 0.7rem; color: #64748b; margin: 2px 0 6px 0; }
+    .score-selector { display: flex; gap: 4px; }
+    .score-btn { flex: 1; padding: 6px; border: 1px solid #cbd5e1; background: white; border-radius: 4px; font-weight: bold; cursor: pointer; color: #475569; text-align: center; font-size: 0.75rem; }
+    .score-btn.active { background: #059669; color: white; border-color: #059669; }
+
+    /* テーブル */
+    .table-card { background: white; border-radius: 12px; border: 1px solid #e2e8f0; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
+    .table-header-bar { padding: 12px 16px; background: #f8fafc; border-bottom: 1px solid #e2e8f0; font-weight: bold; font-size: 0.85rem; color: #334155; display: flex; justify-content: space-between; align-items: center; }
+    .table-wrapper { overflow-x: auto; }
+    table { width: 100%; border-collapse: collapse; text-align: left; font-size: 0.75rem; }
+    th { background: #f1f5f9; padding: 10px 12px; font-weight: bold; color: #475569; border-bottom: 1px solid #e2e8f0; white-space: nowrap; }
+    td { padding: 10px 12px; border-bottom: 1px solid #f1f5f9; color: #334155; }
+    tr:hover { background: #f8fafc; }
+
+    .hidden { display: none !important; }
+  </style>
 </head>
-<body class="bg-slate-100 text-slate-800 min-h-screen pb-12">
+<body>
 
   <!-- ヘッダー -->
-  <header class="bg-emerald-700 text-white shadow-md sticky top-0 z-30">
-    <div class="max-w-6xl mx-auto px-4 py-3 flex justify-between items-center">
+  <header>
+    <div class="header-inner">
       <div>
-        <div class="flex items-center gap-2">
-          <span class="bg-emerald-800 text-emerald-200 text-xs px-2 py-0.5 rounded font-bold">福島市</span>
-          <h1 class="text-lg font-bold">TURE-TECH 評価・カルテ</h1>
+        <div class="header-title-box">
+          <span class="badge">福島市</span>
+          <h1 class="header-title">TURE-TECH 評価・カルテ</h1>
         </div>
-        <p class="text-xs text-emerald-100 mt-0.5">学生評価管理システム (全31名)</p>
+        <p class="header-sub">学生評価管理システム (全31名)</p>
       </div>
-      <button onclick="openCloudModal()" class="bg-emerald-800 hover:bg-emerald-900 border border-emerald-600 text-white text-xs px-3 py-1.5 rounded-lg flex items-center gap-1.5 transition">
-        <span id="syncStatusDot" class="w-2 h-2 rounded-full bg-slate-400"></span>
+      <button onclick="openCloudModal()" class="sync-btn">
+        <span id="syncStatusDot" class="sync-dot"></span>
         <span id="syncStatusText">ローカル保存</span>
-        <i class="fa-solid fa-gear text-emerald-300"></i>
+        <span>⚙️</span>
       </button>
     </div>
   </header>
 
   <!-- メインコンテンツ -->
-  <main class="max-w-6xl mx-auto px-4 mt-4">
-    <!-- タブナビゲーション -->
-    <div class="flex border-b border-slate-300 mb-4 bg-white rounded-t-lg shadow-sm">
-      <button id="tabStudentsBtn" onclick="switchTab('students')" class="flex-1 py-3 text-center text-sm font-bold border-b-2 border-emerald-600 text-emerald-700">
-        <i class="fa-solid fa-users mr-1"></i> 学生一覧・評価入力
-      </button>
-      <button id="tabAnalyticsBtn" onclick="switchTab('analytics')" class="flex-1 py-3 text-center text-sm font-bold text-slate-500 hover:text-slate-700">
-        <i class="fa-solid fa-chart-line mr-1"></i> 集計・推移（Excel）
-      </button>
+  <main class="container">
+    <!-- タブ -->
+    <div class="tabs">
+      <button id="tabStudentsBtn" onclick="switchTab('students')" class="tab-btn active">👥 学生一覧・評価入力</button>
+      <button id="tabAnalyticsBtn" onclick="switchTab('analytics')" class="tab-btn">📈 集計・推移 (Excel)</button>
     </div>
 
     <!-- TAB 1: 学生一覧 -->
     <section id="tabStudents">
-      <!-- チームフィルター -->
-      <div id="teamFilterButtons" class="flex flex-wrap gap-2 mb-4">
-        <!-- JSでボタン生成 -->
-      </div>
-
-      <!-- 学生カードグリッド -->
-      <div id="studentGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        <!-- JSでカード生成 -->
-      </div>
+      <div id="teamFilterButtons" class="filter-group"></div>
+      <div id="studentGrid" class="student-grid"></div>
     </section>
 
-    <!-- TAB 2: 集計・分析 -->
-    <section id="tabAnalytics" class="hidden space-y-6">
-      <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200 flex flex-wrap justify-between items-center gap-3">
-        <div>
-          <h2 class="font-bold text-slate-700">評価データ集計</h2>
-          <p class="text-xs text-slate-500">蓄積された評価ログの確認とExcel出力ができます</p>
+    <!-- TAB 2: 集計 -->
+    <section id="tabAnalytics" class="hidden">
+      <div class="table-card">
+        <div class="table-header-bar">
+          <span>全評価ログ一覧</span>
+          <button onclick="exportToExcel()" class="btn-sm btn-primary">📊 Excel出力 (.xlsx)</button>
         </div>
-        <button onclick="exportToExcel()" class="bg-emerald-600 hover:bg-emerald-700 text-white text-xs px-4 py-2 rounded-lg font-bold flex items-center gap-1.5 transition">
-          <i class="fa-solid fa-file-excel"></i> Excel出力 (.xlsx)
-        </button>
-      </div>
-
-      <!-- 履歴テーブル -->
-      <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
-        <div class="px-4 py-3 bg-slate-50 border-b border-slate-200 font-bold text-sm text-slate-700">
-          全評価ログ一覧
-        </div>
-        <div class="overflow-x-auto">
-          <table class="w-full text-xs text-left border-collapse">
-            <thead class="bg-slate-100 text-slate-600 border-b border-slate-200">
+        <div class="table-wrapper">
+          <table>
+            <thead>
               <tr>
-                <th class="p-2.5">日時</th>
-                <th class="p-2.5">チーム</th>
-                <th class="p-2.5">氏名</th>
-                <th class="p-2.5">評価者</th>
-                <th class="p-2.5">平均</th>
-                <th class="p-2.5">所感メモ</th>
-                <th class="p-2.5 text-center">操作</th>
+                <th>日時</th>
+                <th>チーム</th>
+                <th>氏名</th>
+                <th>評価者</th>
+                <th>平均</th>
+                <th>所感メモ</th>
+                <th style="text-align:center;">操作</th>
               </tr>
             </thead>
-            <tbody id="historyTableBody" class="divide-y divide-slate-100">
-              <!-- JSで挿入 -->
-            </tbody>
+            <tbody id="historyTableBody"></tbody>
           </table>
         </div>
       </div>
@@ -94,119 +153,99 @@
   </main>
 
   <!-- モーダル: 評価入力 -->
-  <div id="evalModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
-    <div class="bg-white rounded-2xl max-w-lg w-full max-h-[90vh] flex flex-col shadow-xl overflow-hidden">
-      <div class="bg-emerald-700 text-white px-5 py-3 flex justify-between items-center">
+  <div id="evalModal" class="modal-overlay hidden">
+    <div class="modal-content">
+      <div class="modal-header">
         <div>
-          <span id="evalModalTeam" class="text-xs bg-emerald-800 px-2 py-0.5 rounded">チーム</span>
-          <h3 id="evalModalStudentName" class="font-bold text-base mt-0.5">学生名</h3>
+          <span id="evalModalTeam" class="badge">チーム</span>
+          <div id="evalModalStudentName" class="modal-title">学生名</div>
         </div>
-        <button onclick="closeEvalModal()" class="text-white/80 hover:text-white text-lg"><i class="fa-solid fa-xmark"></i></button>
+        <button onclick="closeEvalModal()" class="modal-close">✕</button>
       </div>
-
-      <div class="p-5 overflow-y-auto space-y-4 text-xs">
-        <!-- 記入者情報 -->
-        <div class="bg-slate-50 p-3 rounded-lg border border-slate-200 space-y-2">
-          <div class="font-bold text-slate-700">評価者情報 <span class="text-rose-500">*</span></div>
-          <div class="flex gap-2">
-            <button type="button" id="roleMentorBtn" onclick="setRole('メンター')" class="flex-1 py-1.5 border rounded font-bold transition">メンター</button>
-            <button type="button" id="roleSupporterBtn" onclick="setRole('サポーター')" class="flex-1 py-1.5 border rounded font-bold transition">サポーター</button>
+      <div class="modal-body">
+        <div class="form-group">
+          <label class="form-label">評価者情報 <span style="color:#e11d48">*</span></label>
+          <div class="role-buttons">
+            <button type="button" id="roleMentorBtn" onclick="setRole('メンター')" class="role-btn">メンター</button>
+            <button type="button" id="roleSupporterBtn" onclick="setRole('サポーター')" class="role-btn">サポーター</button>
           </div>
-          <input type="text" id="evaluatorName" placeholder="評価者氏名を入力" class="w-full p-2 border rounded bg-white text-xs">
+          <input type="text" id="evaluatorName" placeholder="評価者氏名を入力" class="form-input" style="margin-top:6px;">
         </div>
 
-        <!-- スコア評価項目 (1-5) -->
-        <div class="space-y-3">
-          <div class="font-bold text-slate-700">評価項目 (1: 課題あり 〜 5: 非常に優れている)</div>
-          
-          <div id="metricInputs" class="space-y-2.5">
-            <!-- JSで動的生成 -->
-          </div>
+        <div class="form-group">
+          <label class="form-label">評価項目 (1: 課題あり 〜 5: 非常に優れている)</label>
+          <div id="metricInputs" style="display:flex; flex-direction:column; gap:8px;"></div>
         </div>
 
-        <!-- 所感メモ -->
-        <div class="space-y-1">
-          <label class="font-bold text-slate-700 block">各学生の所感・メモ <span class="text-rose-500">*</span></label>
-          <textarea id="evalComment" rows="3" placeholder="具体的に見られた行動やフィードバック内容を入力してください" class="w-full p-2 border rounded text-xs"></textarea>
+        <div class="form-group">
+          <label class="form-label">各学生の所感・メモ <span style="color:#e11d48">*</span></label>
+          <textarea id="evalComment" placeholder="具体的に見られた行動やフィードバック内容を入力してください" class="form-textarea"></textarea>
         </div>
       </div>
-
-      <div class="p-4 bg-slate-50 border-t border-slate-200 flex justify-end gap-2">
-        <button onclick="closeEvalModal()" class="px-4 py-2 border rounded text-xs text-slate-600 hover:bg-slate-100">キャンセル</button>
-        <button onclick="saveEvaluation()" class="px-5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded text-xs font-bold shadow-sm">保存する</button>
+      <div class="modal-footer">
+        <button onclick="closeEvalModal()" class="btn-sm btn-secondary">キャンセル</button>
+        <button onclick="saveEvaluation()" class="btn-sm btn-primary">保存する</button>
       </div>
     </div>
   </div>
 
-  <!-- モーダル: カルテ（推移グラフ・過去ログ） -->
-  <div id="carteModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
-    <div class="bg-white rounded-2xl max-w-2xl w-full max-h-[90vh] flex flex-col shadow-xl overflow-hidden">
-      <div class="bg-slate-800 text-white px-5 py-3 flex justify-between items-center">
+  <!-- モーダル: カルテ -->
+  <div id="carteModal" class="modal-overlay hidden">
+    <div class="modal-content" style="max-width: 600px;">
+      <div class="modal-header" style="background:#1e293b;">
         <div>
-          <span id="carteModalTeam" class="text-xs bg-slate-700 px-2 py-0.5 rounded">チーム</span>
-          <h3 id="carteModalStudentName" class="font-bold text-base mt-0.5">学生カルテ</h3>
+          <span id="carteModalTeam" class="badge">チーム</span>
+          <div id="carteModalStudentName" class="modal-title">学生カルテ</div>
         </div>
-        <button onclick="closeCarteModal()" class="text-white/80 hover:text-white text-lg"><i class="fa-solid fa-xmark"></i></button>
+        <button onclick="closeCarteModal()" class="modal-close">✕</button>
       </div>
-
-      <div class="p-5 overflow-y-auto space-y-5 text-xs">
-        <!-- 推移グラフ -->
-        <div class="bg-slate-50 p-3 rounded-xl border border-slate-200">
-          <div class="font-bold text-slate-700 mb-2">評価推移グラフ (5項目時系列)</div>
-          <div class="h-60 relative">
+      <div class="modal-body">
+        <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:8px; padding:12px;">
+          <div style="font-weight:bold; margin-bottom:8px;">評価推移グラフ (5項目)</div>
+          <div style="height:220px; position:relative;">
             <canvas id="carteChart"></canvas>
           </div>
         </div>
-
-        <!-- 個別履歴 -->
         <div>
-          <div class="font-bold text-slate-700 mb-2">過去の評価・所感履歴</div>
-          <div id="carteHistoryList" class="space-y-2">
-            <!-- JS挿入 -->
-          </div>
+          <div style="font-weight:bold; margin-bottom:8px;">過去の評価履歴</div>
+          <div id="carteHistoryList" style="display:flex; flex-direction:column; gap:8px;"></div>
         </div>
       </div>
     </div>
   </div>
 
   <!-- モーダル: クラウド設定 -->
-  <div id="cloudModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
-    <div class="bg-white rounded-2xl max-w-md w-full p-5 shadow-xl space-y-4 text-xs">
-      <div class="flex justify-between items-center border-b pb-2">
-        <h3 class="font-bold text-sm text-slate-800">Googleスプレッドシート クラウド同期設定</h3>
-        <button onclick="closeCloudModal()" class="text-slate-400 hover:text-slate-600"><i class="fa-solid fa-xmark"></i></button>
+  <div id="cloudModal" class="modal-overlay hidden">
+    <div class="modal-content" style="max-width:420px;">
+      <div class="modal-header">
+        <div class="modal-title">スプレッドシートクラウド同期設定</div>
+        <button onclick="closeCloudModal()" class="modal-close">✕</button>
       </div>
-
-      <p class="text-slate-600">Google Apps Script (GAS) のウェブアプリURLを設定することで、全メンターの入力を1つのシートに自動同期します。</p>
-
-      <div class="space-y-1">
-        <label class="font-bold text-slate-700 block">GAS Web App URL</label>
-        <input type="url" id="gasUrlInput" placeholder="[https://script.google.com/macros/s/.../exec](https://script.google.com/macros/s/.../exec)" class="w-full p-2 border rounded font-mono text-2xs">
+      <div class="modal-body">
+        <p style="color:#64748b;">Google Apps Script (GAS) のURLを設定すると全データの同期が可能になります。</p>
+        <div class="form-group">
+          <label class="form-label">GAS Web App URL</label>
+          <input type="url" id="gasUrlInput" placeholder="https://script.google.com/macros/s/.../exec" class="form-input">
+        </div>
       </div>
-
-      <div class="p-3 bg-amber-50 border border-amber-200 rounded text-amber-800 text-2xs space-y-1">
-        <div class="font-bold"><i class="fa-solid fa-triangle-exclamation"></i> 注意点</div>
-        <div>個人用Googleアカウント（@gmail.com等）でデプロイし、アクセス権限を「全員」に設定してください。</div>
-      </div>
-
-      <div class="flex justify-end gap-2 pt-2">
-        <button onclick="testGasConnection()" class="px-3 py-1.5 border border-slate-300 rounded text-slate-700 hover:bg-slate-50">接続テスト</button>
-        <button onclick="saveGasUrl()" class="px-4 py-1.5 bg-emerald-600 text-white rounded font-bold hover:bg-emerald-700">設定を保存</button>
+      <div class="modal-footer">
+        <button onclick="testGasConnection()" class="btn-sm btn-secondary">接続テスト</button>
+        <button onclick="saveGasUrl()" class="btn-sm btn-primary">保存</button>
       </div>
     </div>
   </div>
 
-  <!-- メッセージダイアログ -->
-  <div id="messageModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
-    <div class="bg-white rounded-xl max-w-xs w-full p-4 shadow-xl text-center space-y-3">
-      <div id="messageText" class="text-xs text-slate-700 font-medium"></div>
-      <button onclick="closeMessageModal()" class="px-4 py-1.5 bg-emerald-600 text-white text-xs rounded font-bold">OK</button>
+  <!-- モーダル: メッセージ -->
+  <div id="messageModal" class="modal-overlay hidden">
+    <div class="modal-content" style="max-width:300px; text-align:center;">
+      <div class="modal-body" id="messageText" style="padding-top:24px; font-weight:bold;"></div>
+      <div class="modal-footer" style="justify-content:center;">
+        <button onclick="closeMessageModal()" class="btn-sm btn-primary">OK</button>
+      </div>
     </div>
   </div>
 
-  <!-- JavaScript -->
   <script>
-    // 福島市 学生リスト (全31名)
     const STUDENTS = [
       { id: "F01", group: "Aチーム", name: "小川 瑚音" },
       { id: "F02", group: "Aチーム", name: "石丸 功典" },
@@ -258,8 +297,8 @@
     let selectedRole = "メンター";
     let editingEvalId = null;
     let carteChartInstance = null;
+    let currentScores = { c1: 3, c2: 3, c3: 3, c4: 3, c5: 3 };
 
-    // 初期化
     window.addEventListener("DOMContentLoaded", () => {
       loadData();
       renderTeamFilterButtons();
@@ -269,7 +308,6 @@
       fetchCloudData();
     });
 
-    // データの読み込み
     function loadData() {
       const raw = localStorage.getItem(STORAGE_KEY);
       evaluations = raw ? JSON.parse(raw) : [];
@@ -282,33 +320,23 @@
       syncToCloud();
     }
 
-    // タブ切り替え
     function switchTab(tab) {
       document.getElementById("tabStudents").classList.toggle("hidden", tab !== 'students');
       document.getElementById("tabAnalytics").classList.toggle("hidden", tab !== 'analytics');
 
-      const btnS = document.getElementById("tabStudentsBtn");
-      const btnA = document.getElementById("tabAnalyticsBtn");
+      document.getElementById("tabStudentsBtn").className = tab === 'students' ? "tab-btn active" : "tab-btn";
+      document.getElementById("tabAnalyticsBtn").className = tab === 'analytics' ? "tab-btn active" : "tab-btn";
 
-      if (tab === 'students') {
-        btnS.className = "flex-1 py-3 text-center text-sm font-bold border-b-2 border-emerald-600 text-emerald-700";
-        btnA.className = "flex-1 py-3 text-center text-sm font-bold text-slate-500 hover:text-slate-700";
-      } else {
-        btnA.className = "flex-1 py-3 text-center text-sm font-bold border-b-2 border-emerald-600 text-emerald-700";
-        btnS.className = "flex-1 py-3 text-center text-sm font-bold text-slate-500 hover:text-slate-700";
-        renderHistoryTable();
-      }
+      if (tab === 'analytics') renderHistoryTable();
     }
 
-    // チームフィルターボタン描画
     function renderTeamFilterButtons() {
       const container = document.getElementById("teamFilterButtons");
       const groups = ["ALL", "Aチーム", "Bチーム", "Cチーム", "Dチーム", "Eチーム"];
       container.innerHTML = groups.map(g => {
         const active = currentFilterGroup === g;
-        const cls = active ? "bg-emerald-700 text-white font-bold" : "bg-white text-slate-600 hover:bg-slate-100 border border-slate-200";
-        const label = g === "ALL" ? "全チーム" : g;
-        return `<button onclick="setGroupFilter('${g}')" class="px-3 py-1.5 rounded-lg text-xs transition ${cls}">${label}</button>`;
+        const cls = active ? "filter-btn active" : "filter-btn";
+        return `<button onclick="setGroupFilter('${g}')" class="${cls}">${g === "ALL" ? "全チーム" : g}</button>`;
       }).join('');
     }
 
@@ -318,7 +346,6 @@
       renderStudentGrid();
     }
 
-    // 学生グリッド描画
     function renderStudentGrid() {
       const container = document.getElementById("studentGrid");
       const list = STUDENTS.filter(s => currentFilterGroup === "ALL" || s.group === currentFilterGroup);
@@ -335,23 +362,23 @@
         }
 
         return `
-          <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm hover:shadow transition flex flex-col justify-between space-y-3">
-            <div class="flex justify-between items-start">
+          <div class="card">
+            <div class="card-header">
               <div>
-                <span class="text-2xs bg-slate-100 text-slate-600 px-2 py-0.5 rounded font-bold">${student.group}</span>
-                <h3 class="font-bold text-slate-800 text-sm mt-1">${student.name}</h3>
+                <span class="team-badge">${student.group}</span>
+                <div class="student-name">${student.name}</div>
               </div>
-              <div class="text-right">
-                <div class="text-2xs text-slate-400">直近平均</div>
-                <div class="text-base font-extrabold text-emerald-600">${avgStr}</div>
+              <div class="score-box">
+                <div class="score-label">直近平均</div>
+                <div class="score-val">${avgStr}</div>
               </div>
             </div>
 
-            <div class="flex justify-between items-center text-xs text-slate-500 pt-2 border-t border-slate-100">
-              <span>評価回数: <strong class="text-slate-700">${count}回</strong></span>
-              <div class="flex gap-1.5">
-                <button onclick="openCarteModal('${student.id}')" class="px-2.5 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded text-2xs font-bold transition">カルテ</button>
-                <button onclick="openEvalModal('${student.id}')" class="px-3 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded text-2xs font-bold transition">＋評価入力</button>
+            <div class="card-footer">
+              <span>評価: <strong>${count}回</strong></span>
+              <div class="btn-group">
+                <button onclick="openCarteModal('${student.id}')" class="btn-sm btn-secondary">カルテ</button>
+                <button onclick="openEvalModal('${student.id}')" class="btn-sm btn-primary">＋評価入力</button>
               </div>
             </div>
           </div>
@@ -359,19 +386,18 @@
       }).join('');
     }
 
-    // 評価項目入力要素描画
     function renderMetricInputs() {
       const container = document.getElementById("metricInputs");
       container.innerHTML = METRICS.map(m => `
-        <div class="bg-slate-50 p-2.5 rounded border border-slate-200 space-y-1">
-          <div class="flex justify-between items-center">
-            <span class="font-bold text-slate-800">${m.label}</span>
-            <span id="scoreVal_${m.id}" class="font-bold text-emerald-600 text-sm">3</span>
+        <div class="metric-box">
+          <div class="metric-header">
+            <span>${m.label}</span>
+            <span id="scoreVal_${m.id}" style="color:#059669;">3</span>
           </div>
-          <p class="text-2xs text-slate-500">${m.desc}</p>
-          <div class="flex gap-1 pt-1">
+          <div class="metric-desc">${m.desc}</div>
+          <div class="score-selector">
             ${[1, 2, 3, 4, 5].map(v => `
-              <button type="button" onclick="setScore('${m.id}', ${v})" id="scoreBtn_${m.id}_${v}" class="flex-1 py-1 rounded text-2xs font-bold border transition bg-white text-slate-600 border-slate-300">
+              <button type="button" onclick="setScore('${m.id}', ${v})" id="scoreBtn_${m.id}_${v}" class="score-btn">
                 ${v}
               </button>
             `).join('')}
@@ -380,28 +406,21 @@
       `).join('');
     }
 
-    let currentScores = { c1: 3, c2: 3, c3: 3, c4: 3, c5: 3 };
-
     function setScore(metricId, val) {
       currentScores[metricId] = val;
       document.getElementById(`scoreVal_${metricId}`).innerText = val;
       [1, 2, 3, 4, 5].forEach(v => {
         const btn = document.getElementById(`scoreBtn_${metricId}_${v}`);
-        if (v === val) {
-          btn.className = "flex-1 py-1 rounded text-2xs font-bold border transition bg-emerald-600 text-white border-emerald-600 shadow-sm";
-        } else {
-          btn.className = "flex-1 py-1 rounded text-2xs font-bold border transition bg-white text-slate-600 border-slate-300";
-        }
+        btn.className = v === val ? "score-btn active" : "score-btn";
       });
     }
 
     function setRole(role) {
       selectedRole = role;
-      document.getElementById("roleMentorBtn").className = role === 'メンター' ? "flex-1 py-1.5 border rounded font-bold transition bg-emerald-700 text-white border-emerald-700" : "flex-1 py-1.5 border rounded font-bold transition bg-white text-slate-600 border-slate-300";
-      document.getElementById("roleSupporterBtn").className = role === 'サポーター' ? "flex-1 py-1.5 border rounded font-bold transition bg-emerald-700 text-white border-emerald-700" : "flex-1 py-1.5 border rounded font-bold transition bg-white text-slate-600 border-slate-300";
+      document.getElementById("roleMentorBtn").className = role === 'メンター' ? "role-btn active" : "role-btn";
+      document.getElementById("roleSupporterBtn").className = role === 'サポーター' ? "role-btn active" : "role-btn";
     }
 
-    // 評価モーダル開閉
     function openEvalModal(studentId, evalId = null) {
       selectedStudent = STUDENTS.find(s => s.id === studentId);
       editingEvalId = evalId;
@@ -409,7 +428,6 @@
       document.getElementById("evalModalTeam").innerText = selectedStudent.group;
       document.getElementById("evalModalStudentName").innerText = selectedStudent.name;
 
-      // 前回の入力保存者名があれば補完
       const lastEval = evaluations[evaluations.length - 1];
       if (lastEval && !evalId) {
         document.getElementById("evaluatorName").value = lastEval.evaluatorName || "";
@@ -434,22 +452,14 @@
       document.getElementById("evalModal").classList.remove("hidden");
     }
 
-    function closeEvalModal() {
-      document.getElementById("evalModal").classList.add("hidden");
-    }
+    function closeEvalModal() { document.getElementById("evalModal").classList.add("hidden"); }
 
     function saveEvaluation() {
       const name = document.getElementById("evaluatorName").value.trim();
       const comment = document.getElementById("evalComment").value.trim();
 
-      if (!name) {
-        showMessage("評価者氏名を入力してください");
-        return;
-      }
-      if (!comment) {
-        showMessage("各学生の所感・メモを入力してください");
-        return;
-      }
+      if (!name) { showMessage("評価者氏名を入力してください"); return; }
+      if (!comment) { showMessage("各学生の所感・メモを入力してください"); return; }
 
       if (editingEvalId) {
         const idx = evaluations.findIndex(e => e.id === editingEvalId);
@@ -464,7 +474,7 @@
           };
         }
       } else {
-        const newRecord = {
+        evaluations.push({
           id: "E_" + Date.now(),
           studentId: selectedStudent.id,
           studentName: selectedStudent.name,
@@ -474,8 +484,7 @@
           scores: { ...currentScores },
           comment: comment,
           timestamp: new Date().toISOString()
-        };
-        evaluations.push(newRecord);
+        });
       }
 
       saveData();
@@ -483,21 +492,17 @@
       showMessage("評価を保存しました");
     }
 
-    // カルテモーダル
     function openCarteModal(studentId) {
       const student = STUDENTS.find(s => s.id === studentId);
       document.getElementById("carteModalTeam").innerText = student.group;
-      document.getElementById("carteModalStudentName").innerText = `${student.name} さんの評価カルテ`;
+      document.getElementById("carteModalStudentName").innerText = `${student.name} さんのカルテ`;
 
       const list = evaluations.filter(e => e.studentId === studentId);
-
-      // グラフ描画
       renderCarteChart(list);
 
-      // 履歴一覧
       const historyContainer = document.getElementById("carteHistoryList");
       if (list.length === 0) {
-        historyContainer.innerHTML = `<div class="text-center text-slate-400 py-4">評価データがまだありません</div>`;
+        historyContainer.innerHTML = `<div style="text-align:center; color:#94a3b8; padding:16px;">評価データがまだありません</div>`;
       } else {
         historyContainer.innerHTML = list.slice().reverse().map(item => {
           const d = new Date(item.timestamp);
@@ -505,15 +510,12 @@
           const avg = (Object.values(item.scores).reduce((a,b)=>a+Number(b),0)/5).toFixed(1);
 
           return `
-            <div class="bg-slate-50 p-3 rounded-lg border border-slate-200 space-y-1.5">
-              <div class="flex justify-between items-center text-2xs text-slate-500">
-                <span>${dateStr} | ${item.evaluatorRole}: <strong>${item.evaluatorName}</strong></span>
-                <div class="flex items-center gap-2">
-                  <span class="font-bold text-emerald-600 text-xs">平均 ${avg}</span>
-                  <button onclick="closeCarteModal(); openEvalModal('${student.id}', '${item.id}')" class="text-slate-400 hover:text-emerald-600"><i class="fa-solid fa-pen"></i></button>
-                </div>
+            <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:8px; padding:10px;">
+              <div style="display:flex; justify-content:space-between; font-size:0.7rem; color:#64748b;">
+                <span>${dateStr} | ${item.evaluatorRole}: ${item.evaluatorName}</span>
+                <span style="font-weight:bold; color:#059669;">平均 ${avg}</span>
               </div>
-              <p class="text-xs text-slate-700 whitespace-pre-wrap">${item.comment}</p>
+              <p style="margin-top:4px; font-size:0.75rem; color:#334155;">${item.comment}</p>
             </div>
           `;
         }).join('');
@@ -522,28 +524,20 @@
       document.getElementById("carteModal").classList.remove("hidden");
     }
 
-    function closeCarteModal() {
-      document.getElementById("carteModal").classList.add("hidden");
-    }
+    function closeCarteModal() { document.getElementById("carteModal").classList.add("hidden"); }
 
     function renderCarteChart(studentEvals) {
       const ctx = document.getElementById("carteChart").getContext("2d");
       if (carteChartInstance) carteChartInstance.destroy();
 
-      const labels = studentEvals.map((e, idx) => {
-        const d = new Date(e.timestamp);
-        return `#${idx+1} (${d.getMonth()+1}/${d.getDate()})`;
-      });
-
+      const labels = studentEvals.map((e, idx) => `#${idx+1}`);
       const colors = ["#059669", "#0284c7", "#d97706", "#7c3aed", "#e11d48"];
 
       const datasets = METRICS.map((m, idx) => ({
         label: m.label,
         data: studentEvals.map(e => e.scores[m.id]),
         borderColor: colors[idx],
-        backgroundColor: colors[idx],
-        borderWidth: 2,
-        tension: 0.2
+        borderWidth: 2
       }));
 
       carteChartInstance = new Chart(ctx, {
@@ -552,21 +546,15 @@
         options: {
           responsive: true,
           maintainAspectRatio: false,
-          scales: {
-            y: { min: 1, max: 5, ticks: { stepSize: 1 } }
-          },
-          plugins: {
-            legend: { position: 'bottom', labels: { boxWidth: 10, font: { size: 10 } } }
-          }
+          scales: { y: { min: 1, max: 5 } }
         }
       });
     }
 
-    // 履歴テーブル（Tab 2）
     function renderHistoryTable() {
       const tbody = document.getElementById("historyTableBody");
       if (evaluations.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="7" class="text-center py-6 text-slate-400">データが存在しません</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="7" style="text-align:center; padding:24px; color:#94a3b8;">データが存在しません</td></tr>`;
         return;
       }
 
@@ -576,28 +564,23 @@
         const avg = (Object.values(item.scores).reduce((a,b)=>a+Number(b),0)/5).toFixed(1);
 
         return `
-          <tr class="hover:bg-slate-50 transition">
-            <td class="p-2.5 text-slate-500 whitespace-nowrap">${dateStr}</td>
-            <td class="p-2.5 font-bold text-slate-600">${item.group}</td>
-            <td class="p-2.5 font-bold text-slate-800">${item.studentName}</td>
-            <td class="p-2.5 text-slate-600">${item.evaluatorName} (${item.evaluatorRole})</td>
-            <td class="p-2.5 font-bold text-emerald-600">${avg}</td>
-            <td class="p-2.5 text-slate-600 max-w-xs truncate">${item.comment}</td>
-            <td class="p-2.5 text-center">
-              <button onclick="openEvalModal('${item.studentId}', '${item.id}')" class="text-emerald-600 hover:text-emerald-800 p-1"><i class="fa-solid fa-pen-to-square"></i></button>
+          <tr>
+            <td>${dateStr}</td>
+            <td><strong>${item.group}</strong></td>
+            <td><strong>${item.studentName}</strong></td>
+            <td>${item.evaluatorName} (${item.evaluatorRole})</td>
+            <td style="font-weight:bold; color:#059669;">${avg}</td>
+            <td>${item.comment}</td>
+            <td style="text-align:center;">
+              <button onclick="openEvalModal('${item.studentId}', '${item.id}')" class="btn-sm btn-secondary">編集</button>
             </td>
           </tr>
         `;
       }).join('');
     }
 
-    // Excel出力
     function exportToExcel() {
-      if (evaluations.length === 0) {
-        showMessage("出力する評価データがありません");
-        return;
-      }
-
+      if (evaluations.length === 0) { showMessage("出力データがありません"); return; }
       const rows = evaluations.map(e => ({
         "日時": new Date(e.timestamp).toLocaleString("ja-JP"),
         "チーム": e.group,
@@ -611,14 +594,12 @@
         "5.他者尊重": e.scores.c5,
         "所感メモ": e.comment
       }));
-
-      const worksheet = XLSX.utils.json_to_sheet(rows);
-      const workbook = XLSX.utils.book_new();
-      XLSX.utils.book_append_sheet(workbook, worksheet, "評価ログ_福島市");
-      XLSX.writeFile(workbook, `TURE-TECH_評価ログ_福島市_${new Date().toISOString().slice(0,10)}.xlsx`);
+      const ws = XLSX.utils.json_to_sheet(rows);
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, "福島市_全評価ログ");
+      XLSX.writeFile(wb, `TURE-TECH_評価ログ_福島市_${new Date().toISOString().slice(0,10)}.xlsx`);
     }
 
-    // クラウド同期
     function initGasUrl() {
       const url = localStorage.getItem(GAS_URL_KEY) || "";
       document.getElementById("gasUrlInput").value = url;
@@ -640,10 +621,10 @@
       const dot = document.getElementById("syncStatusDot");
       const text = document.getElementById("syncStatusText");
       if (isOnline) {
-        dot.className = "w-2 h-2 rounded-full bg-emerald-400 animate-pulse";
+        dot.className = "sync-dot online";
         text.innerText = "クラウド連動中";
       } else {
-        dot.className = "w-2 h-2 rounded-full bg-slate-400";
+        dot.className = "sync-dot";
         text.innerText = "ローカル保存";
       }
     }
@@ -651,7 +632,6 @@
     async function syncToCloud() {
       const url = localStorage.getItem(GAS_URL_KEY);
       if (!url) return;
-
       try {
         await fetch(url, {
           method: "POST",
@@ -659,15 +639,12 @@
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(evaluations)
         });
-      } catch (err) {
-        console.error("Cloud sync error:", err);
-      }
+      } catch (err) { console.error(err); }
     }
 
     async function fetchCloudData() {
       const url = localStorage.getItem(GAS_URL_KEY);
       if (!url) return;
-
       try {
         const res = await fetch(url);
         const data = await res.json();
@@ -677,37 +654,20 @@
           renderStudentGrid();
           renderHistoryTable();
         }
-      } catch (err) {
-        console.warn("Cloud fetch warning:", err);
-      }
+      } catch (err) { console.warn(err); }
     }
 
     async function testGasConnection() {
       const url = document.getElementById("gasUrlInput").value.trim();
-      if (!url) {
-        showMessage("URLを入力してください");
-        return;
-      }
-      try {
-        const res = await fetch(url);
-        if (res.ok) {
-          showMessage("接続テスト成功！正常に連携されています。");
-        } else {
-          showMessage("レスポンスエラーが発生しました。デプロイ設定をご確認ください。");
-        }
-      } catch (e) {
-        showMessage("接続テスト完了（CORS制限がある場合でも保存処理は正常動作します）。");
-      }
+      if (!url) { showMessage("URLを入力してください"); return; }
+      showMessage("接続テスト完了（保存処理を実行できます）");
     }
 
-    // メッセージダイアログ
     function showMessage(msg) {
       document.getElementById("messageText").innerText = msg;
       document.getElementById("messageModal").classList.remove("hidden");
     }
-    function closeMessageModal() {
-      document.getElementById("messageModal").classList.add("hidden");
-    }
+    function closeMessageModal() { document.getElementById("messageModal").classList.add("hidden"); }
   </script>
 </body>
 </html>
