@@ -1,294 +1,203 @@
-<!-- ... existing code ... -->
-    <!-- Application Header -->
-    <header class="bg-slate-900 text-white shadow-md sticky top-0 z-30">
-        <div class="max-w-6xl mx-auto px-4 py-3 flex flex-wrap justify-between items-center gap-2">
-            <div class="flex items-center space-x-3">
-                <div class="bg-emerald-600 text-white p-2 rounded-lg font-bold text-lg leading-none flex items-center justify-center w-10 h-10">福</div>
-                <div>
-                    <div class="flex items-center space-x-2">
-                        <h1 class="font-bold text-lg leading-tight">TURE-TECH 評価・カルテ</h1>
-                        <span class="bg-emerald-500/30 text-emerald-300 border border-emerald-500/40 text-[11px] font-bold px-2 py-0.5 rounded">福島市</span>
-                    </div>
-                    <p class="text-xs text-slate-400">福島市 学生評価管理システム</p>
-                </div>
-            </div>
-            <div class="flex items-center space-x-2">
-                <button onclick="openCloudConfigModal()" id="syncStatus" class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-slate-800 text-slate-300 border border-slate-700 hover:bg-slate-700 transition cursor-pointer">
-                    <i class="fa-solid fa-cloud mr-1.5 text-emerald-400"></i>
-                    <span>クラウド設定</span>
-                </button>
-            </div>
-        </div>
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TURE-TECH 評価・カルテ【福島市】</title>
+  <script src="[https://cdn.tailwindcss.com](https://cdn.tailwindcss.com)"></script>
+  <link rel="stylesheet" href="[https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css](https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css)">
+  <script src="[https://cdn.jsdelivr.net/npm/chart.js](https://cdn.jsdelivr.net/npm/chart.js)"></script>
+  <script src="[https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js](https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js)"></script>
+</head>
+<body class="bg-slate-100 text-slate-800 min-h-screen pb-12">
 
-        <!-- Navigation Tabs -->
-<!-- ... existing code ... -->
-    <!-- MODAL 2: 学生詳細カルテモーダル -->
-    <div id="karteModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
-<!-- ... existing code ... -->
+  <!-- ヘッダー -->
+  <header class="bg-emerald-700 text-white shadow-md sticky top-0 z-30">
+    <div class="max-w-6xl mx-auto px-4 py-3 flex justify-between items-center">
+      <div>
+        <div class="flex items-center gap-2">
+          <span class="bg-emerald-800 text-emerald-200 text-xs px-2 py-0.5 rounded font-bold">福島市</span>
+          <h1 class="text-lg font-bold">TURE-TECH 評価・カルテ</h1>
+        </div>
+        <p class="text-xs text-emerald-100 mt-0.5">学生評価管理システム (全31名)</p>
+      </div>
+      <button onclick="openCloudModal()" class="bg-emerald-800 hover:bg-emerald-900 border border-emerald-600 text-white text-xs px-3 py-1.5 rounded-lg flex items-center gap-1.5 transition">
+        <span id="syncStatusDot" class="w-2 h-2 rounded-full bg-slate-400"></span>
+        <span id="syncStatusText">ローカル保存</span>
+        <i class="fa-solid fa-gear text-emerald-300"></i>
+      </button>
+    </div>
+  </header>
+
+  <!-- メインコンテンツ -->
+  <main class="max-w-6xl mx-auto px-4 mt-4">
+    <!-- タブナビゲーション -->
+    <div class="flex border-b border-slate-300 mb-4 bg-white rounded-t-lg shadow-sm">
+      <button id="tabStudentsBtn" onclick="switchTab('students')" class="flex-1 py-3 text-center text-sm font-bold border-b-2 border-emerald-600 text-emerald-700">
+        <i class="fa-solid fa-users mr-1"></i> 学生一覧・評価入力
+      </button>
+      <button id="tabAnalyticsBtn" onclick="switchTab('analytics')" class="flex-1 py-3 text-center text-sm font-bold text-slate-500 hover:text-slate-700">
+        <i class="fa-solid fa-chart-line mr-1"></i> 集計・推移（Excel）
+      </button>
     </div>
 
-    <!-- MODAL 3: スプレッドシート連携設定モーダル -->
-    <div id="cloudModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
-        <div class="bg-white rounded-2xl shadow-xl max-w-lg w-full border border-slate-200 p-5 space-y-4 text-xs">
-            <div class="flex justify-between items-center border-b border-slate-100 pb-3">
-                <div class="flex items-center space-x-2">
-                    <div class="p-2 rounded-lg bg-emerald-100 text-emerald-600">
-                        <i class="fa-solid fa-file-excel text-base"></i>
-                    </div>
-                    <div>
-                        <h3 class="text-sm font-bold text-slate-800">Googleスプレッドシート クラウド同期設定</h3>
-                        <p class="text-[10px] text-slate-400">全メンターの入力を1つのシートに自動集約します</p>
-                    </div>
-                </div>
-                <button onclick="closeCloudConfigModal()" class="text-slate-400 hover:text-slate-600 p-1">
-                    <i class="fa-solid fa-xmark text-lg"></i>
-                </button>
-            </div>
+    <!-- TAB 1: 学生一覧 -->
+    <section id="tabStudents">
+      <!-- チームフィルター -->
+      <div id="teamFilterButtons" class="flex flex-wrap gap-2 mb-4">
+        <!-- JSでボタン生成 -->
+      </div>
 
-            <div class="space-y-3">
-                <div>
-                    <label class="block font-bold text-slate-700 mb-1">Google Apps Script ウェブアプリURL</label>
-                    <input type="url" id="gasUrlInput" placeholder="https://script.google.com/macros/s/.../exec" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs bg-slate-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500 font-mono">
-                    <p class="text-[10px] text-slate-500 mt-1">※個人用Googleアカウント（@gmail.com等）でデプロイしたURLを入力してください。</p>
-                </div>
+      <!-- 学生カードグリッド -->
+      <div id="studentGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <!-- JSでカード生成 -->
+      </div>
+    </section>
 
-                <div id="connectionTestStatus" class="p-3 rounded-lg bg-slate-50 border border-slate-200 text-slate-600 text-[11px] space-y-1">
-                    <div class="flex items-center font-bold text-slate-700">
-                        <i class="fa-solid fa-circle-info mr-1.5 text-blue-500"></i>
-                        <span>現在の接続状態</span>
-                    </div>
-                    <p id="connectionDetailsText">URLが設定されていません（現在は端末内のローカル保存で稼働中）</p>
-                </div>
-            </div>
-
-            <div class="flex justify-between items-center pt-2 border-t border-slate-100">
-                <button onclick="testAndSaveGasUrl(true)" class="px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-lg transition flex items-center space-x-1">
-                    <i class="fa-solid fa-vial"></i>
-                    <span>接続テスト</span>
-                </button>
-                <div class="space-x-2">
-                    <button onclick="closeCloudConfigModal()" class="px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold rounded-lg transition">閉じる</button>
-                    <button onclick="saveCloudConfig()" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-lg transition shadow-sm">設定を保存</button>
-                </div>
-            </div>
+    <!-- TAB 2: 集計・分析 -->
+    <section id="tabAnalytics" class="hidden space-y-6">
+      <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200 flex flex-wrap justify-between items-center gap-3">
+        <div>
+          <h2 class="font-bold text-slate-700">評価データ集計</h2>
+          <p class="text-xs text-slate-500">蓄積された評価ログの確認とExcel出力ができます</p>
         </div>
+        <button onclick="exportToExcel()" class="bg-emerald-600 hover:bg-emerald-700 text-white text-xs px-4 py-2 rounded-lg font-bold flex items-center gap-1.5 transition">
+          <i class="fa-solid fa-file-excel"></i> Excel出力 (.xlsx)
+        </button>
+      </div>
+
+      <!-- 履歴テーブル -->
+      <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+        <div class="px-4 py-3 bg-slate-50 border-b border-slate-200 font-bold text-sm text-slate-700">
+          全評価ログ一覧
+        </div>
+        <div class="overflow-x-auto">
+          <table class="w-full text-xs text-left border-collapse">
+            <thead class="bg-slate-100 text-slate-600 border-b border-slate-200">
+              <tr>
+                <th class="p-2.5">日時</th>
+                <th class="p-2.5">チーム</th>
+                <th class="p-2.5">氏名</th>
+                <th class="p-2.5">評価者</th>
+                <th class="p-2.5">平均</th>
+                <th class="p-2.5">所感メモ</th>
+                <th class="p-2.5 text-center">操作</th>
+              </tr>
+            </thead>
+            <tbody id="historyTableBody" class="divide-y divide-slate-100">
+              <!-- JSで挿入 -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- モーダル: 評価入力 -->
+  <div id="evalModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl max-w-lg w-full max-h-[90vh] flex flex-col shadow-xl overflow-hidden">
+      <div class="bg-emerald-700 text-white px-5 py-3 flex justify-between items-center">
+        <div>
+          <span id="evalModalTeam" class="text-xs bg-emerald-800 px-2 py-0.5 rounded">チーム</span>
+          <h3 id="evalModalStudentName" class="font-bold text-base mt-0.5">学生名</h3>
+        </div>
+        <button onclick="closeEvalModal()" class="text-white/80 hover:text-white text-lg"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+
+      <div class="p-5 overflow-y-auto space-y-4 text-xs">
+        <!-- 記入者情報 -->
+        <div class="bg-slate-50 p-3 rounded-lg border border-slate-200 space-y-2">
+          <div class="font-bold text-slate-700">評価者情報 <span class="text-rose-500">*</span></div>
+          <div class="flex gap-2">
+            <button type="button" id="roleMentorBtn" onclick="setRole('メンター')" class="flex-1 py-1.5 border rounded font-bold transition">メンター</button>
+            <button type="button" id="roleSupporterBtn" onclick="setRole('サポーター')" class="flex-1 py-1.5 border rounded font-bold transition">サポーター</button>
+          </div>
+          <input type="text" id="evaluatorName" placeholder="評価者氏名を入力" class="w-full p-2 border rounded bg-white text-xs">
+        </div>
+
+        <!-- スコア評価項目 (1-5) -->
+        <div class="space-y-3">
+          <div class="font-bold text-slate-700">評価項目 (1: 課題あり 〜 5: 非常に優れている)</div>
+          
+          <div id="metricInputs" class="space-y-2.5">
+            <!-- JSで動的生成 -->
+          </div>
+        </div>
+
+        <!-- 所感メモ -->
+        <div class="space-y-1">
+          <label class="font-bold text-slate-700 block">各学生の所感・メモ <span class="text-rose-500">*</span></label>
+          <textarea id="evalComment" rows="3" placeholder="具体的に見られた行動やフィードバック内容を入力してください" class="w-full p-2 border rounded text-xs"></textarea>
+        </div>
+      </div>
+
+      <div class="p-4 bg-slate-50 border-t border-slate-200 flex justify-end gap-2">
+        <button onclick="closeEvalModal()" class="px-4 py-2 border rounded text-xs text-slate-600 hover:bg-slate-100">キャンセル</button>
+        <button onclick="saveEvaluation()" class="px-5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded text-xs font-bold shadow-sm">保存する</button>
+      </div>
     </div>
+  </div>
 
-    <!-- Message Modal (Replaces alert) -->
-    <div id="messageModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
-<!-- ... existing code ... -->
-```html:TURE-TECH評価カルテ【福島市】:fukushima.html
-<!-- ... existing code ... -->
-    <script>
-        // ================================================================
-        // 🌟 福島市専用設定 (他地域と混ざらない独立したストレージキー)
-        // ================================================================
-        // 福島市用のGoogleスプレッドシート連携URL（画面からも設定・保存できます）
-        let GAS_URL = ""; 
+  <!-- モーダル: カルテ（推移グラフ・過去ログ） -->
+  <div id="carteModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl max-w-2xl w-full max-h-[90vh] flex flex-col shadow-xl overflow-hidden">
+      <div class="bg-slate-800 text-white px-5 py-3 flex justify-between items-center">
+        <div>
+          <span id="carteModalTeam" class="text-xs bg-slate-700 px-2 py-0.5 rounded">チーム</span>
+          <h3 id="carteModalStudentName" class="font-bold text-base mt-0.5">学生カルテ</h3>
+        </div>
+        <button onclick="closeCarteModal()" class="text-white/80 hover:text-white text-lg"><i class="fa-solid fa-xmark"></i></button>
+      </div>
 
-        // 福島市 学生データ（全31名）
-        const DEFAULT_STUDENTS = [
-<!-- ... existing code ... -->
-            { id: "fk_s31", name: "戸田 悠一朗", group: "Eチーム", kana: "トダ ユウイチロウ" }
-        ];
+      <div class="p-5 overflow-y-auto space-y-5 text-xs">
+        <!-- 推移グラフ -->
+        <div class="bg-slate-50 p-3 rounded-xl border border-slate-200">
+          <div class="font-bold text-slate-700 mb-2">評価推移グラフ (5項目時系列)</div>
+          <div class="h-60 relative">
+            <canvas id="carteChart"></canvas>
+          </div>
+        </div>
 
-        // 福島市専用の独立ストレージキー（前の地域データとは絶対に混ざりません）
-        const STORAGE_EVALS = 'turetech_fukushima_evals_v1';
-        const STORAGE_EVALUATOR_ROLE = 'turetech_fukushima_evaluator_role';
-        const STORAGE_EVALUATOR_NAME = 'turetech_fukushima_evaluator_name';
-        const STORAGE_GAS_URL = 'turetech_fukushima_gas_url';
+        <!-- 個別履歴 -->
+        <div>
+          <div class="font-bold text-slate-700 mb-2">過去の評価・所感履歴</div>
+          <div id="carteHistoryList" class="space-y-2">
+            <!-- JS挿入 -->
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
 
-        let students = [...DEFAULT_STUDENTS];
-        let evaluations = [];
-        let selectedTeamFilter = 'ALL';
-        let currentStudentForModal = null;
-        let editingEvalId = null;
-        let currentEvaluatorRole = 'メンター';
-        let currentKarteStudentId = null;
+  <!-- モーダル: クラウド設定 -->
+  <div id="cloudModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl max-w-md w-full p-5 shadow-xl space-y-4 text-xs">
+      <div class="flex justify-between items-center border-b pb-2">
+        <h3 class="font-bold text-sm text-slate-800">Googleスプレッドシート クラウド同期設定</h3>
+        <button onclick="closeCloudModal()" class="text-slate-400 hover:text-slate-600"><i class="fa-solid fa-xmark"></i></button>
+      </div>
 
-        let analyticsChartInstance = null;
-        let karteChartInstance = null;
-        let lastSyncErrorDetail = null;
+      <p class="text-slate-600">Google Apps Script (GAS) のウェブアプリURLを設定することで、全メンターの入力を1つのシートに自動同期します。</p>
 
-        window.addEventListener('DOMContentLoaded', async () => {
-            renderTeamFilterButtons();
-            populateStudentDropdowns();
-            
-            // Restore GAS URL
-            const savedUrl = localStorage.getItem(STORAGE_GAS_URL);
-            if (savedUrl) {
-                GAS_URL = savedUrl;
-                const gasInput = document.getElementById('gasUrlInput');
-                if (gasInput) gasInput.value = savedUrl;
-            }
+      <div class="space-y-1">
+        <label class="font-bold text-slate-700 block">GAS Web App URL</label>
+        <input type="url" id="gasUrlInput" placeholder="[https://script.google.com/macros/s/.../exec](https://script.google.com/macros/s/.../exec)" class="w-full p-2 border rounded font-mono text-2xs">
+      </div>
 
-            // Restore Evaluator Role & Name
-            const savedRole = localStorage.getItem(STORAGE_EVALUATOR_ROLE);
-            if (savedRole) setEvaluatorRole(savedRole);
-            const savedName = localStorage.getItem(STORAGE_EVALUATOR_NAME);
-            if (savedName) {
-                const nameEl = document.getElementById('evaluatorNameInput');
-                if (nameEl) nameEl.value = savedName;
-            }
+      <div class="p-3 bg-amber-50 border border-amber-200 rounded text-amber-800 text-2xs space-y-1">
+        <div class="font-bold"><i class="fa-solid fa-triangle-exclamation"></i> 注意点</div>
+        <div>個人用Googleアカウント（@gmail.com等）でデプロイし、アクセス権限を「全員」に設定してください。</div>
+      </div>
 
-            loadLocalData();
-            refreshAllViews();
+      <div class="flex justify-end gap-2 pt-2">
+        <button onclick="testGasConnection()" class="px-3 py-1.5 border border-slate-300 rounded text-slate-700 hover:bg-slate-50">接続テスト</button>
+        <button onclick="saveGasUrl()" class="px-4 py-1.5 bg-emerald-600 text-white rounded font-bold hover:bg-emerald-700">設定を保存</button>
+      </div>
+    </div>
+  </div>
 
-            // Fetch cloud data if GAS URL is configured
-            if (GAS_URL && GAS_URL.trim().length > 0) {
-                await fetchCloudData();
-            } else {
-                updateSyncBadge('local', 'クラウド未設定 (ローカル保存)');
-            }
-        });
-
-        function openCloudConfigModal() {
-            const input = document.getElementById('gasUrlInput');
-            if (input) input.value = GAS_URL || '';
-            updateConnectionTestText();
-            document.getElementById('cloudModal').classList.remove('hidden');
-        }
-
-        function closeCloudConfigModal() {
-            document.getElementById('cloudModal').classList.add('hidden');
-        }
-
-        function updateConnectionTestText(msg = null, isError = false) {
-            const textEl = document.getElementById('connectionDetailsText');
-            if (!textEl) return;
-            if (msg) {
-                textEl.innerHTML = `<span class="${isError ? 'text-rose-600 font-bold' : 'text-emerald-600 font-bold'}">${msg}</span>`;
-            } else if (GAS_URL) {
-                textEl.innerHTML = `設定中URL: <span class="font-mono text-slate-700">${GAS_URL.slice(0, 45)}...</span>`;
-            } else {
-                textEl.textContent = "URLが設定されていません（現在は端末内のローカル保存で稼働中）";
-            }
-        }
-
-        async function testAndSaveGasUrl(isTestOnly = false) {
-            const input = document.getElementById('gasUrlInput');
-            const url = input ? input.value.trim() : '';
-
-            if (!url) {
-                updateConnectionTestText("URLを入力してください。", true);
-                return false;
-            }
-
-            updateConnectionTestText("接続テスト中... 通信を確認しています...", false);
-            try {
-                const testFetchUrl = url + (url.includes('?') ? '&' : '?') + 't=' + Date.now();
-                const res = await fetch(testFetchUrl, { redirect: 'follow' });
-                if (!res.ok) throw new Error(`HTTPエラー (${res.status})`);
-                const text = await res.text();
-                
-                let parsed;
-                try {
-                    parsed = JSON.parse(text);
-                } catch(e) {
-                    throw new Error("GASがJSON以外のデータを返しました（組織制限またはアクセス権限「全員」になっていない可能性があります）");
-                }
-
-                updateConnectionTestText("🟢 接続成功！スプレッドシートと正常に通信できました。", false);
-                if (!isTestOnly) {
-                    GAS_URL = url;
-                    localStorage.setItem(STORAGE_GAS_URL, url);
-                    updateSyncBadge('success', '🟢 スプレッドシート連動中');
-                    if (Array.isArray(parsed) && parsed.length > 0) {
-                        evaluations = parsed;
-                        localStorage.setItem(STORAGE_EVALS, JSON.stringify(evaluations));
-                        refreshAllViews();
-                    } else if (evaluations.length > 0) {
-                        await saveData();
-                    }
-                    closeCloudConfigModal();
-                    showMessageBox("設定完了", "スプレッドシートとの同期が有効になりました！\nこれ以降の入力は自動的にスプレッドシートへ書き込まれます。", "success");
-                }
-                return true;
-            } catch (err) {
-                console.error(err);
-                updateConnectionTestText(`❌ 接続失敗: ${err.message}`, true);
-                return false;
-            }
-        }
-
-        async function saveCloudConfig() {
-            await testAndSaveGasUrl(false);
-        }
-
-        function showMessageBox(title, content, type = 'info') {
-<!-- ... existing code ... -->
-        function updateSyncBadge(statusType, text, errorMsg = null) {
-            const badge = document.getElementById('syncStatus');
-            if (!badge) return;
-            lastSyncErrorDetail = errorMsg;
-
-            if (statusType === 'success') {
-                badge.className = "inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 hover:bg-emerald-500/30 transition cursor-pointer";
-                badge.innerHTML = `<span class="w-2 h-2 mr-1.5 bg-emerald-400 rounded-full animate-pulse"></span> ${text}`;
-            } else if (statusType === 'loading') {
-                badge.className = "inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-amber-500/20 text-amber-300 border border-amber-500/30 hover:bg-amber-500/30 transition cursor-pointer";
-                badge.innerHTML = `<span class="w-2 h-2 mr-1.5 bg-amber-400 rounded-full animate-pulse"></span> ${text}`;
-            } else {
-                badge.className = "inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-slate-800 text-slate-300 border border-slate-700 hover:bg-slate-700 transition cursor-pointer";
-                badge.innerHTML = `<i class="fa-solid fa-cloud-arrow-up mr-1.5 text-emerald-400"></i> ${text}`;
-            }
-        }
-
-        function checkSyncStatusDetail() {
-            openCloudConfigModal();
-        }
-
-        function loadLocalData() {
-<!-- ... existing code ... -->
-        async function fetchCloudData() {
-            if (!GAS_URL) return;
-            updateSyncBadge('loading', 'スプレッドシートよりデータ取得中...');
-            try {
-                const fetchUrl = GAS_URL + (GAS_URL.includes('?') ? '&' : '?') + 't=' + Date.now();
-                const res = await fetch(fetchUrl, { redirect: 'follow' });
-                if (!res.ok) throw new Error(`HTTPステータスエラー: ${res.status}`);
-                const text = await res.text();
-                let cloudData = [];
-                try {
-                    cloudData = JSON.parse(text);
-                } catch(parseErr) {
-                    throw new Error("GASからの応答がJSON形式ではありません");
-                }
-
-                if (Array.isArray(cloudData)) {
-                    if (cloudData.length > 0) {
-                        evaluations = cloudData;
-                        localStorage.setItem(STORAGE_EVALS, JSON.stringify(evaluations));
-                    } else if (evaluations.length > 0) {
-                        await saveData();
-                    }
-                    updateSyncBadge('success', '🟢 スプレッドシート連動中');
-                    refreshAllViews();
-                }
-            } catch (e) {
-                console.warn('Cloud fetch failed, using local storage:', e);
-                updateSyncBadge('local', 'クラウド未接続 (ローカル保存)', e.message || e.toString());
-            }
-        }
-
-        async function saveData() {
-            localStorage.setItem(STORAGE_EVALS, JSON.stringify(evaluations));
-            if (GAS_URL && GAS_URL.trim().length > 0) {
-                updateSyncBadge('loading', 'クラウド送信中...');
-                try {
-                    await fetch(GAS_URL, {
-                        method: 'POST',
-                        mode: 'no-cors',
-                        headers: { 'Content-Type': 'text/plain' },
-                        body: JSON.stringify(evaluations)
-                    });
-                    updateSyncBadge('success', '🟢 スプレッドシート同期済み');
-                } catch (e) {
-                    console.error('GAS POST Error:', e);
-                    updateSyncBadge('local', '送信待機 (ローカル保存済み)', e.message || e.toString());
-                }
-            }
-        }
-
-        function refreshAllViews() {
-<!-- ... existing code ... -->
+  <!-- メッセージダイアログ -->
+  <div id="messageModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-white rounded-xl max-w-xs w-full p-4 shadow-xl text-center space-y-3">
+      <div id="messageText" class="text-xs text-slate-700 font-medium"></div>
+      <button onclick="closeMessageModal()" class="px-4 py-1.5 bg-emerald-600 text-white text-xs rounded font-bold">OK</button>
