@@ -246,6 +246,9 @@
   </div>
 
   <script>
+    // ★【重要】ここに発行されたGASのWebアプリURLを貼り付けてください（全員が初期設定不要になります）
+    const DEFAULT_GAS_URL = "https://script.google.com/macros/s/AKfycbxlALqYcVxaB8yqj_WfBb7mZfqa2xExeavVLSNjlV-KSfM41Wg1WkPdpsH8WoZtkMW40g/exec";
+
     const STUDENTS = [
       { id: "F01", group: "Aチーム", name: "小川 瑚音" },
       { id: "F02", group: "Aチーム", name: "石丸 功典" },
@@ -306,6 +309,11 @@
       renderMetricInputs();
       initGasUrl();
       fetchCloudData();
+
+      // 10秒ごとに全自動で最新データを巡回・更新
+      setInterval(() => {
+        fetchCloudData(true);
+      }, 10000);
     });
 
     function loadData() {
@@ -601,8 +609,12 @@
     }
 
     function initGasUrl() {
-      const url = localStorage.getItem(GAS_URL_KEY) || "";
-      document.getElementById("gasUrlInput").value = url;
+      let url = localStorage.getItem(GAS_URL_KEY);
+      if (!url && DEFAULT_GAS_URL && DEFAULT_GAS_URL !== "ここにGASのURLを貼り付け") {
+        url = DEFAULT_GAS_URL;
+        localStorage.setItem(GAS_URL_KEY, url);
+      }
+      document.getElementById("gasUrlInput").value = url || "";
       updateSyncStatusUI(!!url);
     }
 
@@ -630,8 +642,8 @@
     }
 
     async function syncToCloud() {
-      const url = localStorage.getItem(GAS_URL_KEY);
-      if (!url) return;
+      const url = localStorage.getItem(GAS_URL_KEY) || DEFAULT_GAS_URL;
+      if (!url || url === "ここにGASのURLを貼り付け") return;
       try {
         await fetch(url, {
           method: "POST",
@@ -642,19 +654,25 @@
       } catch (err) { console.error(err); }
     }
 
-    async function fetchCloudData() {
-      const url = localStorage.getItem(GAS_URL_KEY);
-      if (!url) return;
+    async function fetchCloudData(isBackground = false) {
+      const url = localStorage.getItem(GAS_URL_KEY) || DEFAULT_GAS_URL;
+      if (!url || url === "ここにGASのURLを貼り付け") return;
       try {
         const res = await fetch(url);
         const data = await res.json();
-        if (Array.isArray(data) && data.length > 0) {
-          evaluations = data;
-          localStorage.setItem(STORAGE_KEY, JSON.stringify(evaluations));
-          renderStudentGrid();
-          renderHistoryTable();
+        if (Array.isArray(data)) {
+          const currentJson = JSON.stringify(evaluations);
+          const newJson = JSON.stringify(data);
+          if (currentJson !== newJson) {
+            evaluations = data;
+            localStorage.setItem(STORAGE_KEY, newJson);
+            renderStudentGrid();
+            renderHistoryTable();
+          }
         }
-      } catch (err) { console.warn(err); }
+      } catch (err) {
+        if (!isBackground) console.warn(err);
+      }
     }
 
     async function testGasConnection() {
